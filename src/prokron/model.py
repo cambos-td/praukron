@@ -6,6 +6,7 @@ consumes them.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -36,6 +37,18 @@ EVENT_OUTCOMES = ("success", "failure", "partial", "unknown")
 DEBT_STATUSES = ("OPEN", "ACCEPTED", "SCHEDULED", "RESOLVED", "INVALIDATED")
 DEBT_CLOSED = ("RESOLVED", "INVALIDATED")
 TRIGGER_STATES = ("NOT_REACHED", "APPROACHING", "REACHED")
+
+# Provisional agent assumptions and the owner's verbatim responses (ADR-054).
+ASSUMPTION_STATUSES = ("OPEN", "CONFIRMED", "REVISED", "REJECTED", "WITHDRAWN")
+IMPACTS = ("LOW", "MEDIUM", "HIGH")
+RESPONSE_ACTIONS = ("CONFIRM", "REVISE", "REJECT", "GUIDE")
+# The status a decisive response asks for. GUIDE asks for none.
+RESPONSE_STATUS = {"CONFIRM": "CONFIRMED", "REVISE": "REVISED", "REJECT": "REJECTED"}
+# A task only a named person can finish.
+TASK_AUTHORITIES = ("owner",)
+# The per-project assumption policy (ADR-057): groups an agent may not assume.
+POLICY_GROUPS = ("permission", "security", "external-disclosure", "legal", "source-of-truth")
+NOTIFY_CHANNELS = ("host", "none")
 
 OBSTACLE_TYPES = (
     "DEPENDENCY_BLOCKER",
@@ -130,6 +143,12 @@ class Task:
     # legacy task authors `Phase:` instead and has no module (ADR-036).
     module: str | None = None
     legacy_phase: str | None = None
+    # `owner` marks work only a named person can finish (ADR-054).
+    authority: str | None = None
+
+    @property
+    def owner_held(self) -> bool:
+        return self.authority == "owner"
 
     @property
     def done(self) -> bool:
@@ -210,10 +229,75 @@ class Decision:
     origin: str = "CONTEMPORANEOUS"
     evidence: str | None = None
     authority: str | None = None
+    # Set only on an assumption-policy ADR (ADR-057).
+    policy: str | None = None
+    reserved: list[str] | None = None
+    notify: str | None = None
 
     @property
     def reconstructed(self) -> bool:
         return self.origin == "RECONSTRUCTED"
+
+
+@dataclass
+class Assumption:
+    """A choice an agent made provisionally. It holds no authority itself."""
+
+    id: str
+    title: str
+    status: str
+    tasks: list[str]
+    impact: str
+    recorded: str | None
+    assumption: str | None
+    basis: str | None
+    applied_in: str | None
+    permissions: str | None
+    responses: list[str]
+    reconciled_by: list[str]
+    source: Source
+
+    @property
+    def open(self) -> bool:
+        return self.status == "OPEN"
+
+    @property
+    def references(self) -> list[str]:
+        """Record ids named in `Applied in`; free text is kept, not resolved."""
+        return re.findall(r"\b(?:ADR-[0-9]+|AC-[A-Za-z0-9.\-]*[A-Za-z0-9]|T-[A-Za-z0-9.\-]*[A-Za-z0-9])\b",
+                          self.applied_in or "")
+
+
+@dataclass
+class Response:
+    """What the owner said, verbatim. Append-only (ADR-054)."""
+
+    id: str
+    target: str
+    action: str
+    by: str | None
+    date: str | None
+    via: str | None
+    text: str
+    source: Source
+
+    def as_json(self) -> dict[str, object]:
+        return {"id": self.id, "target": self.target, "action": self.action, "by": self.by,
+                "date": self.date, "via": self.via, "text": self.text,
+                "source": self.source.as_json()}
+
+
+@dataclass
+class Policy:
+    """The assumption policy in force: groups reserved for the owner."""
+
+    reserved: list[str]
+    notify: str
+    decision: str | None  # the ADR that set it; None means the default
+
+    def as_json(self) -> dict[str, object]:
+        return {"reserved": self.reserved, "notify": self.notify,
+                "decision": self.decision, "default": self.decision is None}
 
 
 @dataclass
@@ -349,6 +433,35 @@ class Project:
     handoff: str = ""
     events: list[TraceEvent] = field(default_factory=list)
     debts: list[TechDebt] = field(default_factory=list)
+    assumptions: list[Assumption] = field(default_factory=list)
+    responses: list[Response] = field(default_factory=list)
+
+    @property
+    def policy(self) -> Policy:
+        """The newest ACCEPTED policy ADR, or the default: everything reserved."""
+        found = [d for d in self.decisions
+                 if d.status == "ACCEPTED" and (d.policy or "").lower() == "assumptions"]
+        if not found:
+            return Policy(list(POLICY_GROUPS), "host", None)
+        latest = max(found, key=lambda d: int(d.id.split("-")[1]))
+        return Policy(list(latest.reserved or []), latest.notify or "host", latest.id)
+
+    def assumption(self, assumption_id: str) -> Assumption | None:
+        for assumption in self.assumptions:
+            if assumption.id == assumption_id:
+                return assumption
+        return None
+
+    def responses_to(self, target: str) -> list[Response]:
+        return [r for r in self.responses if r.target == target]
+
+    def assumptions_for(self, task_id: str) -> list[Assumption]:
+        return [a for a in self.assumptions if task_id in a.tasks]
+
+    def assumption_phases(self, assumption: Assumption) -> list[str]:
+        """Phase and module come from the tasks, never from the record."""
+        return list(dict.fromkeys(
+            self.task(t).phase for t in assumption.tasks if self.task(t) is not None))
 
     def debts_for(self, record_id: str) -> list[TechDebt]:
         """Debt a task or decision introduced, or a task repays."""

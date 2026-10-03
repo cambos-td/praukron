@@ -17,10 +17,12 @@ from .model import Project
 from .parse import (
     ParseError,
     parse_acceptance,
+    parse_assumptions,
     parse_decisions,
     parse_modules,
     parse_phases,
     parse_project_name,
+    parse_responses,
     parse_tasks,
     parse_thesis,
     parse_debt,
@@ -67,6 +69,8 @@ def load(root: Path) -> Project:
         handoff=read_text(authority / "HANDOFF.md"),
         events=parse_trace(authority / "TRACE.md"),
         debts=parse_debt(authority / "TECH_DEBT.md"),
+        assumptions=parse_assumptions(authority / "ASSUMPTIONS.md"),
+        responses=parse_responses(authority / "RESPONSES.md"),
     )
     domain.resolve(project)
     # A phase whose work is finished but whose exit has not been accepted is
@@ -143,6 +147,8 @@ def as_json(project: Project) -> dict[str, object]:
                 "events": analytics.events_for(project, task.id),
                 "debt": [debt.id for debt in project.debts_for(task.id)],
                 "implementation": {"files": task.files, "symbols": task.symbols},
+                "authority": task.authority,
+                "assumptions": [a.id for a in project.assumptions_for(task.id)],
                 "source": task.source.as_json(),
             }
             for task in project.tasks
@@ -232,6 +238,11 @@ def as_json(project: Project) -> dict[str, object]:
         ],
         "obstacles": [obstacle.as_json() for obstacle in report.obstacles],
         "debt": [debt.as_json() for debt in project.debts],
+        # Assumptions hold no authority; responses are the owner's words as
+        # written; the policy in force is read from its ADR (ADR-054, ADR-057).
+        "assumptions": [assumption_json(project, a) for a in project.assumptions],
+        "responses": [r.as_json() for r in project.responses],
+        "policy": project.policy.as_json(),
         "criticalPath": report.critical_path,
         "schedule": {
             "scheduled": report.scheduled,
@@ -271,8 +282,33 @@ def as_json(project: Project) -> dict[str, object]:
                 "HANDOFF.md",
                 "TRACE.md",
                 "TECH_DEBT.md",
+                "ASSUMPTIONS.md",
+                "RESPONSES.md",
             ],
         },
+    }
+
+
+def assumption_json(project: Project, assumption) -> dict[str, object]:
+    """One assumption as authored, with its phase and module derived from its tasks."""
+    tasks = [project.task(t) for t in assumption.tasks if project.task(t) is not None]
+    return {
+        "id": assumption.id,
+        "title": assumption.title,
+        "status": assumption.status,
+        "tasks": assumption.tasks,
+        "phases": project.assumption_phases(assumption),
+        "modules": list(dict.fromkeys(t.module for t in tasks if t.module)),
+        "impact": assumption.impact,
+        "recorded": assumption.recorded,
+        "assumption": assumption.assumption,
+        "basis": assumption.basis,
+        "appliedIn": assumption.applied_in,
+        "references": assumption.references,
+        "permissions": assumption.permissions,
+        "responses": assumption.responses,
+        "reconciledBy": assumption.reconciled_by,
+        "source": assumption.source.as_json(),
     }
 
 

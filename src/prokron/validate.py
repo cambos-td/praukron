@@ -12,7 +12,14 @@ from pathlib import Path
 
 from .layout import AUTHORITY_DIR
 from .model import (
+    ASSUMPTION_STATUSES,
     CRITERION_STATES,
+    IMPACTS,
+    NOTIFY_CHANNELS,
+    POLICY_GROUPS,
+    RESPONSE_ACTIONS,
+    RESPONSE_STATUS,
+    TASK_AUTHORITIES,
     DEBT_STATUSES,
     DECISION_ORIGINS,
     DOMAINS,
@@ -222,6 +229,133 @@ def debt_findings(project: Project) -> list[Finding]:
                 warn("resolved-debt-open-task", f"RESOLVED while {', '.join(open_tasks)} is still open")
         if debt.trigger_state == "REACHED" and debt.status in ("OPEN", "ACCEPTED"):
             warn("debt-trigger-reached", "trigger reached but no repayment is scheduled")
+    return findings
+
+
+_RECORD_ID = re.compile(r"^(ADR-[0-9]+|AC-[A-Za-z0-9.\-]+|T-[A-Za-z0-9.\-]+)$")
+
+
+def assumption_findings(project: Project) -> list[Finding]:
+    """Assumptions, owner responses, owner-held tasks, and the policy (ADR-054, ADR-057)."""
+    findings: list[Finding] = []
+    task_ids = {t.id for t in project.tasks}
+    decision_ids = {d.id for d in project.decisions}
+    criterion_ids = {c.id for contract in project.contracts.values() for c in contract.criteria}
+    contract_ids = set(project.contracts)
+    assumption_ids = {a.id for a in project.assumptions}
+    responses = {r.id: r for r in project.responses}
+    policy = project.policy
+
+    def known(reference: str) -> bool:
+        if reference.startswith("ADR-"):
+            return reference in decision_ids
+        if reference.startswith("AC-"):
+            return reference in criterion_ids or reference in contract_ids
+        return reference in task_ids
+
+    seen: set[str] = set()
+    for a in project.assumptions:
+        where = f"{a.source.file}#{a.id}"
+
+        def error(code: str, message: str) -> None:
+            findings.append(Finding("error", code, message, where))
+
+        if a.id in seen:
+            error("duplicate-assumption", f"assumption {a.id} is defined more than once")
+        seen.add(a.id)
+        if a.status not in ASSUMPTION_STATUSES:
+            error("invalid-assumption-status", f"'{a.status}' is not an assumption status")
+        if a.impact not in IMPACTS:
+            error("invalid-impact", f"'{a.impact}' is not LOW, MEDIUM, or HIGH")
+        if not a.tasks:
+            error("assumption-without-task", "assumption names no task")
+        for task_id in a.tasks:
+            if task_id not in task_ids:
+                error("unknown-assumption-reference", f"names task {task_id}, which does not exist")
+        for reference in a.references:
+            if not known(reference):
+                error("unknown-assumption-reference", f"applied in {reference}, which does not exist")
+        for reference in a.reconciled_by:
+            if _RECORD_ID.match(reference) and not known(reference):
+                error("unknown-assumption-reference", f"reconciled by {reference}, which does not exist")
+        for response_id in a.responses:
+            response = responses.get(response_id)
+            if response is None:
+                error("unknown-response-reference", f"lists response {response_id}, which does not exist")
+            elif response.target != a.id:
+                error("unknown-response-reference",
+                      f"lists {response_id}, which answers {response.target}, not {a.id}")
+        wanted = {v: k for k, v in RESPONSE_STATUS.items()}.get(a.status)
+        if wanted and not any(r.action == wanted for r in project.responses_to(a.id)):
+            error("status-without-response",
+                  f"{a.status} but RESPONSES.md holds no {wanted} for {a.id}")
+        if a.status in ("REVISED", "REJECTED", "WITHDRAWN") and not a.reconciled_by:
+            error("missing-reconciliation", f"{a.status} but names nothing in Reconciled by")
+        if a.permissions and a.impact != "HIGH":
+            error("permission-not-high", "a permission assumption must be Impact: HIGH")
+        if a.permissions and "permission" in policy.reserved:
+            source = policy.decision or "the default policy"
+            error("reserved-assumption",
+                  f"assumes a permission choice, which {source} reserves for the owner")
+
+    previous = 0
+    seen_responses: set[str] = set()
+    for r in project.responses:
+        where = f"{r.source.file}#{r.id}"
+
+        def error(code: str, message: str) -> None:
+            findings.append(Finding("error", code, message, where))
+
+        if r.id in seen_responses:
+            error("duplicate-response", f"response {r.id} is defined more than once")
+        seen_responses.add(r.id)
+        number = int(r.id.split("-")[1])
+        if number <= previous:
+            findings.append(Finding("warning", "response-order",
+                                    f"{r.id} follows R-{previous}; responses are append-only", where))
+        previous = max(previous, number)
+        if r.action not in RESPONSE_ACTIONS:
+            error("invalid-response-action", f"'{r.action}' is not CONFIRM, REVISE, REJECT, or GUIDE")
+        if r.target.startswith("A-"):
+            if r.target not in assumption_ids:
+                error("unknown-response-target", f"answers {r.target}, which does not exist")
+        elif r.target.startswith("T-"):
+            if r.target not in task_ids:
+                error("unknown-response-target", f"answers {r.target}, which does not exist")
+            elif r.action in RESPONSE_STATUS:
+                error("invalid-response-action", f"{r.action} applies to assumptions; a task takes GUIDE")
+        else:
+            error("unknown-response-target", f"'{r.target}' is neither an assumption nor a task")
+        for field, value in (("By", r.by), ("Date", r.date), ("Via", r.via)):
+            if not value:
+                error("incomplete-response", f"response records no {field}")
+        if not r.text.strip():
+            error("incomplete-response", "response holds no quoted text")
+
+    for task in project.tasks:
+        if task.authority is None:
+            continue
+        where = f"{task.source.file}#{task.id}"
+        if task.authority not in TASK_AUTHORITIES:
+            findings.append(Finding("error", "invalid-task-authority",
+                                    f"'{task.authority}' is not a task authority; use owner", where))
+        elif task.done and task.validation != "HUMAN_VERIFIED":
+            findings.append(Finding("error", "owner-task-not-verified",
+                                    "an Authority: owner task is DONE only with HUMAN_VERIFIED", where))
+
+    for decision in project.decisions:
+        if (decision.policy or "").lower() != "assumptions":
+            continue
+        where = f"{decision.source.file}#{decision.id}"
+        if decision.reserved is None:
+            findings.append(Finding("error", "incomplete-policy", "policy ADR states no Reserved", where))
+        for group in decision.reserved or []:
+            if group not in POLICY_GROUPS and group != "none":
+                findings.append(Finding("error", "invalid-policy-group",
+                                        f"'{group}' is not one of {', '.join(POLICY_GROUPS)}", where))
+        if decision.notify and decision.notify not in NOTIFY_CHANNELS:
+            findings.append(Finding("error", "invalid-policy-notify",
+                                    f"'{decision.notify}' is not host or none", where))
     return findings
 
 
@@ -453,6 +587,7 @@ def check(project: Project) -> list[Finding]:
     findings.extend(domain_findings(project))
     findings.extend(trace_findings(project))
     findings.extend(debt_findings(project))
+    findings.extend(assumption_findings(project))
     findings.extend(stale_references(project))
     return findings
 

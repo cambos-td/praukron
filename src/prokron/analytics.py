@@ -785,6 +785,8 @@ def context(project: Project, task_id: str | None, role: str = "builder") -> dic
         # Debt this task introduced or repays, and debt its decisions created.
         "debt": [d.as_json() for d in debts],
         "handoff": _relevant(project.handoff, task_id),
+        # What this agent may assume, and whether it notifies when it may not.
+        "policy": project.policy.as_json(),
     }
     if task.done:
         packet["note"] = (

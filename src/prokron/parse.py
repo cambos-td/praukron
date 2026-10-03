@@ -11,6 +11,7 @@ import re
 from pathlib import Path
 
 from .model import (
+    Assumption,
     Contract,
     Criterion,
     Decision,
@@ -18,6 +19,7 @@ from .model import (
     Milestone,
     Module,
     Phase,
+    Response,
     Schedule,
     Source,
     Task,
@@ -159,6 +161,7 @@ def parse_tasks(path: Path, modules: list[Module] | None = None) -> list[Task]:
                 symbols=_list(fields.get("Symbols")),
                 module=module_id,
                 legacy_phase=legacy_phase,
+                authority=(fields.get("Authority") or "").strip().lower() or None,
             )
         )
     return tasks
@@ -362,6 +365,12 @@ def parse_decisions(directory: Path) -> list[Decision]:
                 origin=fields.get("Origin") or "CONTEMPORANEOUS",
                 evidence=_named(fields.get("Evidence")),
                 authority=_named(fields.get("Authority")),
+                policy=_named(fields.get("Policy")),
+                reserved=(
+                    [g.lower() for g in _list(fields.get("Reserved"))]
+                    if "Reserved" in fields else None
+                ),
+                notify=(_named(fields.get("Notify")) or "").lower() or None,
             )
         )
     return decisions
@@ -439,6 +448,69 @@ def parse_debt(path: Path) -> list[TechDebt]:
             )
         )
     return debts
+
+
+def parse_assumptions(path: Path) -> list[Assumption]:
+    """ASSUMPTIONS.md (ADR-054). Optional: no file, no assumptions."""
+    if not path.is_file():
+        return []
+    name = path.name
+    found: list[Assumption] = []
+    for heading, body in _sections(path.read_text(), "##"):
+        match = re.match(r"(A-[A-Za-z0-9.\-]+): (.+)", heading)
+        if not match:
+            raise ParseError(name, heading, "assumption heading must read '## A-<id>: <title>'")
+        assumption_id = match.group(1)
+        fields = _fields(body)
+        for required in ("Status", "Tasks", "Impact", "Assumption"):
+            if required not in fields:
+                raise ParseError(name, assumption_id, f"missing required field '{required}'")
+        found.append(Assumption(
+            id=assumption_id,
+            title=match.group(2).strip(),
+            status=fields["Status"].strip().upper(),
+            tasks=_list(fields["Tasks"]),
+            impact=fields["Impact"].strip().upper(),
+            recorded=_named(fields.get("Recorded")),
+            assumption=_named(fields.get("Assumption")),
+            basis=_named(fields.get("Basis")),
+            applied_in=_named(fields.get("Applied in")),
+            permissions=_named(fields.get("Permissions")),
+            responses=_list(fields.get("Responses")),
+            reconciled_by=_list(fields.get("Reconciled by")),
+            source=Source(name, assumption_id),
+        ))
+    return found
+
+
+def _quoted(body: str) -> str:
+    """The owner's words: the blockquote, unquoted, every line kept as written."""
+    lines = [line for line in body.splitlines() if line.startswith(">")]
+    return "\n".join(line[2:] if line.startswith("> ") else line[1:] for line in lines)
+
+
+def parse_responses(path: Path) -> list[Response]:
+    """RESPONSES.md (ADR-054). Optional, append-only, and read verbatim."""
+    if not path.is_file():
+        return []
+    name = path.name
+    found: list[Response] = []
+    for heading, body in _sections(path.read_text(), "##"):
+        match = re.match(r"(R-[0-9]+): (\S+) (\S+)$", heading)
+        if not match:
+            raise ParseError(name, heading, "response heading must read '## R-<n>: <target> <ACTION>'")
+        fields = _fields(body)
+        found.append(Response(
+            id=match.group(1),
+            target=match.group(2),
+            action=match.group(3).upper(),
+            by=_named(fields.get("By")),
+            date=_named(fields.get("Date")),
+            via=_named(fields.get("Via")),
+            text=_quoted(body),
+            source=Source(name, match.group(1)),
+        ))
+    return found
 
 
 def read_text(path: Path) -> str:

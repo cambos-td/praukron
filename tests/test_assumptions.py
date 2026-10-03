@@ -101,5 +101,206 @@ class TestAssumptionSpecification(unittest.TestCase):
         self.assertEqual(outputs[0], outputs[1])
 
 
+ASSUMPTIONS = """# Assumptions
+
+## A-1: Payment term defaults to thirty days
+- Status: OPEN
+- Tasks: T-ONE, T-TWO
+- Impact: HIGH
+- Recorded: 2026-10-01 · claude/primary
+- Assumption: Each client has one payment term in days,
+  default 30.
+- Basis: No term exists in the data. Researched, not confirmed.
+- Applied in: ADR-001, AC-T-ONE-01, `clients.payment_terms_days`
+- Responses: R-1
+- Reconciled by: none
+
+## A-2: Sales may read their own clients only
+- Status: OPEN
+- Tasks: T-TWO
+- Impact: HIGH
+- Recorded: 2026-10-02 · claude/primary
+- Assumption: Sales read only clients they own.
+- Basis: Smallest access that works.
+- Applied in: T-TWO
+- Permissions: sales read own clients
+- Responses: none
+- Reconciled by: none
+"""
+
+RESPONSES = """# Owner responses
+
+## R-1: A-1 REVISE
+- By: Thien (owner)
+- Date: 2026-10-02
+- Via: dashboard
+
+> Mặc định 7 ngày, không phải 30.
+>
+> Ghi chú: **order/payment** vẫn là source of truth.
+
+## R-2: T-TWO GUIDE
+- By: Thien (owner)
+- Date: 2026-10-02
+- Via: relayed by claude/primary from chat
+
+> Use the staging backup. Do not touch production.
+"""
+
+POLICY_ADR = """# ADR-002: Assumption policy
+- Date: 2026-10-01
+- Status: ACCEPTED
+- Authority: owner
+- Policy: assumptions
+- Reserved: security, legal
+- Notify: host
+- Decision: Agents may assume permission choices here.
+"""
+
+
+class AssumptionCase(unittest.TestCase):
+    def setUp(self) -> None:
+        self.dir = Path(tempfile.mkdtemp(prefix="prokron-assume-"))
+        self.addCleanup(shutil.rmtree, self.dir, True)
+        build_fixture(self.dir)
+        self.authority = self.dir / layout.AUTHORITY_DIR
+        self.write(ASSUMPTIONS, RESPONSES, POLICY_ADR)
+
+    def write(self, assumptions: str | None = None, responses: str | None = None,
+              policy: str | None = None) -> None:
+        if assumptions is not None:
+            (self.authority / "ASSUMPTIONS.md").write_text(assumptions)
+        if responses is not None:
+            (self.authority / "RESPONSES.md").write_text(responses)
+        if policy is not None:
+            (self.authority / "ADR" / "ADR-002.md").write_text(policy)
+        self.load()
+
+    def load(self) -> None:
+        self.project = compiler.load(self.dir)
+
+    def errors(self) -> list[str]:
+        return [f.code for f in validate.errors(validate.check(self.project))]
+
+
+class TestAssumptionModel(AssumptionCase):
+    """T-ASSUME-MODEL-01: parsed exactly, validated strictly."""
+
+    def test_records_compile_as_written_with_derived_lineage(self) -> None:
+        self.assertEqual(self.errors(), [])
+        data = compiler.as_json(self.project)
+        first = data["assumptions"][0]
+        self.assertEqual(first["assumption"], "Each client has one payment term in days, default 30.")
+        self.assertEqual(first["references"], ["ADR-001", "AC-T-ONE-01"])
+        self.assertEqual(first["appliedIn"], "ADR-001, AC-T-ONE-01, `clients.payment_terms_days`")
+        self.assertEqual((first["phases"], first["modules"]), (["P1"], ["M-FOUNDATION"]))
+        self.assertEqual(data["assumptions"][1]["permissions"], "sales read own clients")
+        owner = data["responses"][0]
+        self.assertEqual(owner["text"], "Mặc định 7 ngày, không phải 30.\n\n"
+                                        "Ghi chú: **order/payment** vẫn là source of truth.")
+        self.assertEqual((owner["target"], owner["action"], owner["by"]), ("A-1", "REVISE", "Thien (owner)"))
+        self.assertEqual(data["responses"][1]["via"], "relayed by claude/primary from chat")
+        self.assertEqual({t["id"]: t["assumptions"] for t in data["tasks"]}["T-TWO"], ["A-1", "A-2"])
+        self.assertEqual(data["policy"], {"reserved": ["security", "legal"], "notify": "host",
+                                          "decision": "ADR-002", "default": False})
+
+    def test_unknown_references_values_and_duplicates_are_errors(self) -> None:
+        block = ASSUMPTIONS.split("# Assumptions\n", 1)[1]
+        cases = {
+            "unknown-assumption-reference": ASSUMPTIONS.replace("Tasks: T-ONE, T-TWO", "Tasks: T-GHOST"),
+            "invalid-assumption-status": ASSUMPTIONS.replace("Status: OPEN", "Status: MAYBE", 1),
+            "invalid-impact": ASSUMPTIONS.replace("Impact: HIGH", "Impact: HUGE", 1),
+            "duplicate-assumption": ASSUMPTIONS + block,
+            "unknown-response-reference": ASSUMPTIONS.replace("Responses: R-1", "Responses: R-9"),
+            "assumption-without-task": ASSUMPTIONS.replace("Tasks: T-TWO\n", "Tasks: none\n"),
+        }
+        for code, text in cases.items():
+            with self.subTest(code=code):
+                self.write(assumptions=text)
+                self.assertIn(code, self.errors())
+        self.write(assumptions=ASSUMPTIONS.replace("ADR-001, AC-T-ONE-01", "ADR-404, AC-T-NOPE-09"))
+        self.assertEqual(self.errors().count("unknown-assumption-reference"), 2)
+        self.write(assumptions=ASSUMPTIONS)
+        response_cases = {
+            "unknown-response-target": RESPONSES.replace("R-2: T-TWO GUIDE", "R-2: A-77 GUIDE"),
+            "invalid-response-action": RESPONSES.replace("R-1: A-1 REVISE", "R-1: A-1 MAYBE"),
+            "duplicate-response": RESPONSES.replace("R-2: T-TWO", "R-1: T-TWO"),
+            "incomplete-response": RESPONSES.replace("- By: Thien (owner)\n", "", 1),
+        }
+        for code, text in response_cases.items():
+            with self.subTest(code=code):
+                self.write(responses=text)
+                self.assertIn(code, self.errors())
+        self.write(responses=RESPONSES.replace("R-2: T-TWO GUIDE", "R-2: T-TWO CONFIRM"))
+        self.assertIn("invalid-response-action", self.errors())
+        self.write(responses=RESPONSES.replace("> Use the staging backup. Do not touch production.\n", ""))
+        self.assertIn("incomplete-response", self.errors())
+
+    def test_status_needs_its_response_and_reconciliation(self) -> None:
+        confirmed = ASSUMPTIONS.replace("Status: OPEN", "Status: CONFIRMED", 1)
+        self.write(assumptions=confirmed)
+        self.assertIn("status-without-response", self.errors())
+        revised = ASSUMPTIONS.replace("Status: OPEN", "Status: REVISED", 1)
+        self.write(assumptions=revised)
+        self.assertNotIn("status-without-response", self.errors())
+        self.assertIn("missing-reconciliation", self.errors())
+        self.write(assumptions=revised.replace("Reconciled by: none", "Reconciled by: ADR-001", 1))
+        self.assertEqual(self.errors(), [])
+        self.write(assumptions=ASSUMPTIONS.replace("Status: OPEN", "Status: REJECTED", 1)
+                   .replace("Reconciled by: none", "Reconciled by: ADR-001", 1))
+        self.assertIn("status-without-response", self.errors())
+        withdrawn = ASSUMPTIONS.replace("Status: OPEN", "Status: WITHDRAWN", 1)
+        self.write(assumptions=withdrawn)
+        self.assertIn("missing-reconciliation", self.errors())
+        self.write(assumptions=withdrawn.replace("Reconciled by: none", "Reconciled by: a stale key, not a rule", 1))
+        self.assertEqual(self.errors(), [])
+
+    def test_owner_held_task_is_done_only_human_verified(self) -> None:
+        tasks = self.authority / "TASKS.md"
+        text = tasks.read_text()
+        tasks.write_text(text.replace("- Status: DONE\n- Module: M-FOUNDATION\n",
+                                      "- Status: DONE\n- Module: M-FOUNDATION\n- Authority: owner\n", 1))
+        self.load()
+        self.assertIn("owner-task-not-verified", self.errors())
+        tasks.write_text(tasks.read_text().replace("- Validation: SYNTHETIC", "- Validation: HUMAN_VERIFIED", 1))
+        self.load()
+        self.assertNotIn("owner-task-not-verified", self.errors())
+        self.assertTrue(self.project.task("T-ONE").owner_held)
+        tasks.write_text(tasks.read_text().replace("- Authority: owner", "- Authority: anyone", 1))
+        self.load()
+        self.assertIn("invalid-task-authority", self.errors())
+
+    def test_a_permission_assumption_must_be_high(self) -> None:
+        self.write(assumptions=ASSUMPTIONS.replace("- Impact: HIGH\n- Recorded: 2026-10-02",
+                                                   "- Impact: MEDIUM\n- Recorded: 2026-10-02"))
+        self.assertIn("permission-not-high", self.errors())
+
+    def test_the_policy_in_force_and_its_errors(self) -> None:
+        self.assertEqual(self.project.policy.decision, "ADR-002")
+        self.assertNotIn("reserved-assumption", self.errors())
+        newer = POLICY_ADR.replace("ADR-002", "ADR-003").replace("security, legal", "permission, security")
+        (self.authority / "ADR" / "ADR-003.md").write_text(newer)
+        self.load()
+        self.assertEqual(self.project.policy.decision, "ADR-003")
+        self.assertIn("reserved-assumption", self.errors())
+        (self.authority / "ADR" / "ADR-003.md").write_text(newer.replace("Status: ACCEPTED", "Status: PROPOSED"))
+        self.load()
+        self.assertEqual(self.project.policy.decision, "ADR-002")
+        (self.authority / "ADR" / "ADR-002.md").unlink()
+        (self.authority / "ADR" / "ADR-003.md").unlink()
+        self.load()
+        default = self.project.policy
+        self.assertEqual((default.decision, default.notify), (None, "host"))
+        self.assertEqual(default.reserved, list(GROUPS))
+        self.assertIn("reserved-assumption", self.errors())
+        self.write(policy=POLICY_ADR.replace("security, legal", "secrets").replace("Notify: host", "Notify: sms"))
+        self.assertIn("invalid-policy-group", self.errors())
+        self.assertIn("invalid-policy-notify", self.errors())
+        self.write(policy=POLICY_ADR.replace("- Reserved: security, legal\n", ""))
+        self.assertIn("incomplete-policy", self.errors())
+        packet = analytics.context(self.project, "T-TWO")
+        self.assertIn("policy", packet)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
