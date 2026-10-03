@@ -32,7 +32,7 @@ Before reading broad repository context or the rest of `.prokron/chronicle/`:
 
 Use the narrowest projection that answers the current question, and expand
 progressively: index, then the task packet, then `retrieve`, then the exact
-record, then the code. Never preload the whole chronicle, `TASK_GRAPH.md`, or
+record, then the code. Never preload the chronicle in full, `TASK_GRAPH.md`, or
 `project.json`, and never re-read what the current packet already holds.
 
 `INDEX.md`, `.prokron/compiled/`, and `context` output are derived maps, not
