@@ -245,6 +245,8 @@ def as_json(project: Project) -> dict[str, object]:
         "assumptions": [assumption_json(project, a) for a in project.assumptions],
         "responses": [r.as_json() for r in project.responses],
         "policy": project.policy.as_json(),
+        # Derived diagnostics; nothing here changes a status (ADR-054).
+        "assumptionReport": report.assumptions,
         "criticalPath": report.critical_path,
         "schedule": {
             "scheduled": report.scheduled,

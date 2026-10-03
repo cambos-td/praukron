@@ -192,6 +192,9 @@ def cmd_status(root: Path, args: argparse.Namespace) -> int:
               + (f" · exit waits on {waits}" if waits else ""))
     if words["workAhead"]:
         print(f"  ahead        {words['workAhead']}")
+    line = analytics.assumption_line(report)
+    if line:
+        print(f"  assumptions  {line}")
     independent = metrics["phaseIndependent"]
     if independent:
         print(f"  {'no phase':<12} {independent} task{'' if independent == 1 else 's'}")

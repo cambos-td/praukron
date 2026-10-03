@@ -10,7 +10,9 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import layout
-from .model import EXERCISED_CLASSES, Obstacle, Project, Task
+import re
+
+from .model import EXERCISED_CLASSES, RESPONSE_STATUS, Obstacle, Project, Task
 
 
 @dataclass
@@ -51,6 +53,7 @@ class Report:
     # Phase -> the earlier phase whose exit it waits on, when that is open.
     phase_waits: dict[str, str] = field(default_factory=dict)
     work_ahead: dict[str, object] | None = None
+    assumptions: dict[str, object] = field(default_factory=dict)
 
     def _criteria(self, tasks: list[Task]) -> list:
         referenced = {t.contract for t in tasks if t.contract}
@@ -431,8 +434,165 @@ def report(project: Project) -> Report:
     result.in_flight = _in_flight(project, result)
     result.next_gate = _next_gate(project, result)
     result.main_blocker = _main_blocker(project, result)
+    _assign_actors(project, result)
+    if result.main_blocker:
+        blocker = result.main_blocker
+        holder = project.task(blocker["id"]) if blocker["kind"] == "TASK" else None
+        blocker["actor"] = (
+            "owner" if holder and holder.owner_held
+            else "operations" if holder and not holder.execution else "agent")
+        blocker["unblock"] = (
+            f"{'the owner finishes' if blocker['actor'] == 'owner' else 'finish'} {blocker['id']}"
+            if holder else f"record the evidence that turns {blocker['id']} green")
+    result.assumptions = assumption_report(project, result)
     result.execution_failures = _execution_failures(project)
     return result
+
+
+def _open_leaves(project: Project, task: Task) -> list[str]:
+    """The open work at the far end of a task's unfinished dependencies."""
+    leaves: list[str] = []
+    seen: set[str] = set()
+
+    def walk(task_id: str) -> None:
+        if task_id in seen:
+            return
+        seen.add(task_id)
+        current = project.task(task_id)
+        if current is None or current.done:
+            return
+        deeper = [d for d in current.dependencies if project.task(d) and not project.task(d).done]
+        if not deeper or current.status == "WIP":
+            leaves.append(task_id)
+        for dependency in deeper:
+            walk(dependency)
+
+    for dependency in task.dependencies:
+        walk(dependency)
+    return leaves
+
+
+def _assign_actors(project: Project, result: Report) -> None:
+    """Who must act on each obstacle, and what would clear it. Derived only."""
+    for obstacle in result.obstacles:
+        task = project.task(obstacle.subject)
+        if obstacle.type == "DEPENDENCY_BLOCKER":
+            leaves = _open_leaves(project, task)
+            owners = [t for t in leaves if project.task(t).owner_held]
+            operations = [t for t in obstacle.blockers if project.task(t) and not project.task(t).execution]
+            if owners:
+                obstacle.actor = "owner"
+                obstacle.unblock = f"the owner finishes {', '.join(owners)}"
+            elif operations:
+                obstacle.actor = "operations"
+                obstacle.unblock = f"operations work finishes {', '.join(operations)}"
+            else:
+                obstacle.unblock = f"finish {', '.join(obstacle.blockers)}"
+        elif obstacle.type == "ACCEPTANCE_BLOCKER":
+            obstacle.actor = "owner" if task and task.owner_held else "agent"
+            shown = obstacle.blockers[:3]
+            more = len(obstacle.blockers) - len(shown)
+            obstacle.unblock = f"record passing evidence for {', '.join(shown)}" + (f" and {more} more" if more else "")
+        elif obstacle.type == "GATE_BLOCKER":
+            obstacle.unblock = f"record the evidence that turns {', '.join(obstacle.blockers)} green"
+        elif obstacle.type == "PHASE_BLOCKER":
+            owners = [t for t in obstacle.blockers if project.task(t) and project.task(t).owner_held]
+            obstacle.actor = "owner" if owners and len(owners) == len(obstacle.blockers) else "agent"
+            obstacle.unblock = f"finish {len(obstacle.blockers)} open task{'s' if len(obstacle.blockers) != 1 else ''}"
+        elif obstacle.type == "VALIDATION_GAP":
+            obstacle.unblock = (
+                "record a review: AI_REVIEWED by an independent agent, or HUMAN_VERIFIED by the owner"
+                if obstacle.variant == "REVIEW_MISSING" else
+                "record TEST, RUNTIME, MUTATION, or MANUAL evidence, then a review"
+            )
+        elif obstacle.type == "SCHEDULE_BLOCKER":
+            obstacle.unblock = "add a start plus an estimate or an end"
+        if obstacle.domain == "operations" and obstacle.actor == "agent":
+            obstacle.actor = "operations"
+
+
+def assumption_line(report: Report) -> str:
+    """One line for status and INDEX.md; empty when there is nothing to say."""
+    a = report.assumptions
+    project = report.project
+    if not (project.assumptions or project.responses or a["ownerHeld"]):
+        return ""
+    held = ", ".join(
+        f"{w['task']} ({w['unblock']})" for w in a["waitingOnOwner"][:3]
+    ) or ", ".join(a["ownerHeld"][:3]) or "none"
+    return (
+        f"{len(a['open'])} open · {len(a['openHigh'])} HIGH · {len(a['openPermission'])} permission · "
+        f"{len(a['awaitingReconciliation'])} awaiting reconciliation · owner-held: {held}"
+    )
+
+
+def awaiting_reconciliation(project: Project) -> list[dict[str, str]]:
+    """Owner responses the records do not yet reflect. Reported, never resolved."""
+    waiting = []
+    for assumption in project.assumptions:
+        decisive = [r for r in project.responses_to(assumption.id) if r.action in RESPONSE_STATUS]
+        if not decisive:
+            continue
+        latest = decisive[-1]
+        wanted = RESPONSE_STATUS[latest.action]
+        needs_record = latest.action in ("REVISE", "REJECT") and not assumption.reconciled_by
+        if assumption.status != wanted or needs_record:
+            waiting.append({"assumption": assumption.id, "response": latest.id, "action": latest.action})
+    return waiting
+
+
+def assumption_report(project: Project, result: Report) -> dict[str, object]:
+    """What the owner needs to review and what the agent needs to reconcile."""
+    opened = [a for a in project.assumptions if a.open]
+    path = set(result.critical_path)
+    current = project.current_phase
+    on_current = [
+        a.id for a in opened
+        if (current and current in project.assumption_phases(a)) or path & set(a.tasks)
+    ]
+    on_done = [
+        {"assumption": a.id, "tasks": [t for t in a.tasks if project.task(t) and project.task(t).done]}
+        for a in opened if any(project.task(t) and project.task(t).done for t in a.tasks)
+    ]
+    resting = []
+    for contract in project.contracts.values():
+        for criterion in contract.criteria:
+            if criterion.state != "PASS" or not criterion.evidence:
+                continue
+            for a in opened:
+                if re.search(rf"(?<![A-Za-z0-9-]){re.escape(a.id)}(?![A-Za-z0-9])", criterion.evidence):
+                    resting.append({"criterion": criterion.id, "assumption": a.id})
+    exits = {p.exit_authority for p in project.phases if p.exit_authority}
+    exit_criteria = {
+        c.id for t in project.tasks if t.id in exits
+        for c in project.mandatory_criteria(t)
+    }
+    on_exits = [
+        a.id for a in opened
+        if exits & set(a.tasks) or exits & set(a.references) or exit_criteria & set(a.references)
+    ]
+    guidance = [
+        {"response": r.id, "task": r.target}
+        for r in project.responses
+        if r.action == "GUIDE" and project.task(r.target) is not None and not project.task(r.target).done
+    ]
+    owner_blocked = [
+        {"task": o.subject, "unblock": o.unblock}
+        for o in result.obstacles if o.type == "DEPENDENCY_BLOCKER" and o.actor == "owner"
+    ]
+    return {
+        "open": [a.id for a in opened],
+        "openHigh": [a.id for a in opened if a.impact == "HIGH"],
+        "openPermission": [a.id for a in opened if a.permissions],
+        "openOnCurrentWork": on_current,
+        "awaitingReconciliation": awaiting_reconciliation(project),
+        "openOnDoneTasks": on_done,
+        "passRestingOnOpen": resting,
+        "openOnExits": on_exits,
+        "guidanceOnOpenTasks": guidance,
+        "ownerHeld": [t.id for t in project.tasks if t.owner_held and not t.done],
+        "waitingOnOwner": owner_blocked,
+    }
 
 
 def events_for(project: Project, task_id: str) -> list[str]:
@@ -847,6 +1007,13 @@ def context(project: Project, task_id: str | None, role: str = "builder") -> dic
         *[_pointer(d.source) for d in decisions],
         *[_pointer(d.source) for d in debts],
     ]
+    assumptions = project.assumptions_for(task_id)
+    waiting = {w["assumption"] for w in awaiting_reconciliation(project)}
+    open_dependencies = [d for d in task.dependencies if project.task(d) and not project.task(d).done]
+    targets = {task_id, *(a.id for a in assumptions), *open_dependencies}
+    responses = [r for r in project.responses if r.target in targets]
+    authority += [_pointer(a.source) for a in assumptions]
+    authority += [_pointer(r.source) for r in responses]
     authority.append("HANDOFF.md")
     trail = lineage(project, task)
     # The orientation packet and INDEX.md carry the thesis; a task packet
@@ -927,6 +1094,24 @@ def context(project: Project, task_id: str | None, role: str = "builder") -> dic
         "handoff": _relevant(project.handoff, task_id),
         # What this agent may assume, and whether it notifies when it may not.
         "policy": project.policy.as_json(),
+        # Provisional choices this task rests on. None of them is authority.
+        "assumptions": [
+            {
+                "id": a.id, "title": a.title, "status": a.status, "impact": a.impact,
+                "assumption": a.assumption,
+                "permission": bool(a.permissions),
+                **({"permissions": a.permissions} if a.permissions else {}),
+                "awaitingReconciliation": a.id in waiting,
+                "authority": _pointer(a.source),
+            }
+            for a in assumptions
+        ],
+        # The owner's words about this task, its assumptions, or what blocks
+        # it, verbatim. Act on them; never edit them (ADR-054).
+        "responses": [
+            {**{k: v for k, v in r.as_json().items() if k != "source"}, "authority": _pointer(r.source)}
+            for r in responses
+        ],
     }
     if task.done:
         packet["note"] = (

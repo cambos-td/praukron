@@ -139,6 +139,7 @@ def render(project: Project, report: Report, root) -> str:
         f"- debt_attention: {', '.join(d.id for d in v['attention']) or 'none'}",
         f"- decisions_now: {', '.join(d.id for d in v['decisions']) or 'none'}",
         f"- unresolved_failures: {len(v['unresolved'])}",
+        f"- assumptions: {analytics.assumption_line(report) or 'none'}",
     ]
 
     intent = _excerpt(project.intent)

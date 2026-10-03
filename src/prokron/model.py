@@ -392,6 +392,10 @@ class Obstacle:
     # A finer reading of the type where one exists, e.g. a validation gap
     # with evidence recorded but no review, versus one with no evidence.
     variant: str | None = None
+    # Derived, never authored: who must act (agent, owner, operations) and
+    # what would clear it (ADR-054).
+    actor: str = "agent"
+    unblock: str = ""
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -401,6 +405,8 @@ class Obstacle:
             "detail": self.detail,
             "domain": self.domain,
             "variant": self.variant,
+            "actor": self.actor,
+            "unblock": self.unblock,
         }
 
 

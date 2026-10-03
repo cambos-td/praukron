@@ -302,5 +302,111 @@ class TestAssumptionModel(AssumptionCase):
         self.assertIn("policy", packet)
 
 
+class TestAssumptionProjection(AssumptionCase):
+    """T-ASSUME-PROJECT-01: derived diagnostics, actors, packets, one-line summaries."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        tasks = self.authority / "TASKS.md"
+        text = tasks.read_text()
+        text = text.replace("- Status: DONE\n- Module: M-FOUNDATION\n- Validation: SYNTHETIC",
+                            "- Status: DONE\n- Module: M-FOUNDATION\n- Validation: UNTESTED", 1)
+        text = text.replace("## T-TWO: Build on it\n- Status: TODO\n- Module: M-FOUNDATION\n",
+                            "## T-TWO: Build on it\n- Status: WIP\n- Module: M-FOUNDATION\n- Authority: owner\n", 1)
+        text = text.replace("- Schedule: start=2026-10-01 estimate=3d", "- Schedule: start=2026-10-01")
+        tasks.write_text(text)
+        acceptance = self.authority / "ACCEPTANCE.md"
+        acceptance.write_text(acceptance.read_text().replace("Measured on site.", "Measured on site under A-1."))
+        self.load()
+        self.report = analytics.report(self.project)
+        self.data = compiler.as_json(self.project)
+
+    def test_diagnostics_name_their_ids(self) -> None:
+        """AC-T-ASSUME-PROJECT-01-01."""
+        r = self.data["assumptionReport"]
+        self.assertEqual(r["open"], ["A-1", "A-2"])
+        self.assertEqual(r["openHigh"], ["A-1", "A-2"])
+        self.assertEqual(r["openPermission"], ["A-2"])
+        self.assertEqual(r["openOnCurrentWork"], ["A-1", "A-2"])
+        self.assertEqual(r["awaitingReconciliation"], [{"assumption": "A-1", "response": "R-1", "action": "REVISE"}])
+        self.assertEqual(r["openOnDoneTasks"], [{"assumption": "A-1", "tasks": ["T-ONE"]}])
+        self.assertEqual(r["passRestingOnOpen"], [{"criterion": "AC-T-ONE-01", "assumption": "A-1"}])
+        self.assertEqual(r["openOnExits"], ["A-1", "A-2"])
+        self.assertEqual(r["guidanceOnOpenTasks"], [{"response": "R-2", "task": "T-TWO"}])
+        self.assertEqual(r["ownerHeld"], ["T-TWO"])
+
+    def test_reconciling_clears_the_diagnostic_but_nothing_derives_a_status(self) -> None:
+        self.assertEqual(self.project.assumption("A-1").status, "OPEN")
+        self.write(assumptions=ASSUMPTIONS.replace("Status: OPEN", "Status: REVISED", 1)
+                   .replace("Reconciled by: none", "Reconciled by: ADR-001", 1))
+        report = analytics.report(self.project)
+        self.assertEqual(report.assumptions["awaitingReconciliation"], [])
+        self.assertNotIn("A-1", report.assumptions["open"])
+
+    def test_every_obstacle_names_an_actor_and_an_unblock(self) -> None:
+        """AC-T-ASSUME-PROJECT-01-02."""
+        kinds = {o["type"] for o in self.data["obstacles"]}
+        self.assertEqual(kinds, {"DEPENDENCY_BLOCKER", "ACCEPTANCE_BLOCKER", "GATE_BLOCKER",
+                                 "PHASE_BLOCKER", "VALIDATION_GAP", "SCHEDULE_BLOCKER"})
+        for obstacle in self.data["obstacles"]:
+            with self.subTest(obstacle=obstacle["type"]):
+                self.assertIn(obstacle["actor"], ("agent", "owner", "operations"))
+                self.assertTrue(obstacle["unblock"])
+        dependency = next(o for o in self.data["obstacles"] if o["type"] == "DEPENDENCY_BLOCKER")
+        self.assertEqual((dependency["subject"], dependency["actor"], dependency["unblock"]),
+                         ("T-THREE", "owner", "the owner finishes T-TWO"))
+        acceptance = next(o for o in self.data["obstacles"] if o["type"] == "ACCEPTANCE_BLOCKER")
+        self.assertEqual(acceptance["actor"], "owner")
+        self.assertEqual(self.data["assumptionReport"]["waitingOnOwner"],
+                         [{"task": "T-THREE", "unblock": "the owner finishes T-TWO"}])
+        self.assertEqual(self.data["execution"]["mainBlocker"]["actor"], "agent")
+
+    def test_the_task_packet_carries_its_assumptions_and_the_owners_words(self) -> None:
+        """AC-T-ASSUME-PROJECT-01-03."""
+        packet = analytics.context(self.project, "T-TWO")
+        self.assertEqual([a["id"] for a in packet["assumptions"]], ["A-1", "A-2"])
+        self.assertTrue(packet["assumptions"][0]["awaitingReconciliation"])
+        self.assertEqual([r["id"] for r in packet["responses"]], ["R-1", "R-2"])
+        self.assertEqual(packet["responses"][0]["text"].splitlines()[0], "Mặc định 7 ngày, không phải 30.")
+        for pointer in ("ASSUMPTIONS.md#A-1", "ASSUMPTIONS.md#A-2", "RESPONSES.md#R-1", "RESPONSES.md#R-2"):
+            self.assertIn(pointer, packet["authority"]["read"])
+        # Guidance on a task's open dependency reaches the task it blocks.
+        downstream = analytics.context(self.project, "T-THREE")
+        self.assertEqual([r["id"] for r in downstream["responses"]], ["R-2"])
+
+    def test_status_and_index_carry_one_line(self) -> None:
+        """AC-T-ASSUME-PROJECT-01-04."""
+        import io
+        from contextlib import redirect_stdout
+        out = io.StringIO()
+        with redirect_stdout(out):
+            from prokron import cli
+            cli.main(["-C", str(self.dir), "status"])
+        expected = ("2 open · 2 HIGH · 1 permission · 1 awaiting reconciliation · "
+                    "owner-held: T-THREE (the owner finishes T-TWO)")
+        self.assertIn(f"assumptions  {expected}", out.getvalue())
+        compiler.write(self.dir, self.project)
+        self.assertIn(f"- assumptions: {expected}", (self.authority / "INDEX.md").read_text())
+
+    def test_deterministic_and_never_written_back(self) -> None:
+        """AC-T-ASSUME-PROJECT-01-05."""
+        before = {p: p.read_bytes() for p in self.authority.rglob("*") if p.is_file() and p.name != "INDEX.md"}
+        compiler.write(self.dir, self.project)
+        first = (self.dir / layout.COMPILED_DIR / "project.json").read_text()
+        self.load()
+        compiler.write(self.dir, self.project)
+        self.assertEqual((self.dir / layout.COMPILED_DIR / "project.json").read_text(), first)
+        after = {p: p.read_bytes() for p in self.authority.rglob("*") if p.is_file() and p.name != "INDEX.md"}
+        self.assertEqual(after, before)
+        self.assertEqual([a.status for a in self.project.assumptions], ["OPEN", "OPEN"])
+
+    def test_a_permission_assumption_is_marked_in_the_packet(self) -> None:
+        """AC-T-ASSUME-PROJECT-01-06."""
+        entry = analytics.context(self.project, "T-TWO")["assumptions"][1]
+        self.assertTrue(entry["permission"])
+        self.assertEqual(entry["permissions"], "sales read own clients")
+        self.assertFalse(analytics.context(self.project, "T-TWO")["assumptions"][0]["permission"])
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
