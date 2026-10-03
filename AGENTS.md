@@ -22,8 +22,8 @@ Before reading broad repository context or the rest of `.prokron/chronicle/`:
    implementation anchors, and the exact `file#anchor` records to read. Do not start a task merely because
    unrelated work is visible in the repository.
 3. Read only those records. `.prokron/prokron retrieve "<question or task>"`
-   returns exactly them, each labelled with its source. The packet already
-   carries the handoff; do not read `HANDOFF.md` again.
+   returns exactly them, each labelled with its source. When the packet
+   includes the handoff, do not read `HANDOFF.md` again.
 4. Do not load the whole chronicle by default. Read further Markdown only to
    resolve an ambiguity or when the packet is not enough.
 5. Explore the code only after the project context is resolved. Where
