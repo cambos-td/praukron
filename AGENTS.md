@@ -48,7 +48,10 @@ by reading files:
 .prokron/prokron dashboard       # a browsable page of the same state
 ```
 
-Run `validate` after editing authority and `compile` before finishing. The tool
+Run `validate` after editing authority. Before finishing, refresh everything in
+`.prokron/compiled/`: `compile` does not redraw the graphs or the dashboard, so
+run `compile && graph && dashboard`; a stale dashboard shows people a state the
+chronicle no longer holds. The tool
 never edits a record in `.prokron/chronicle/`; the only file it writes there is
 the generated `INDEX.md`.
 

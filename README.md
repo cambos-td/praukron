@@ -8,8 +8,9 @@
 
 **Prokron keeps people and AI agents working from the same project state.**
 
-Project management that a person and an AI can both read. Prokron is short for
-Project Chronicle.
+A repository-native project-state protocol and reference implementation for
+asynchronous human–AI software development. Prokron is short for Project
+Chronicle.
 
 [The problem](#the-problem) · [Get started](#get-started) ·
 [Guide](docs/GUIDE.md) · [Specification](docs/SPEC.md) ·

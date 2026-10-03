@@ -1,5 +1,14 @@
 # Prokron product thesis
 
+> We introduce Prokron, a repository-native project-state protocol and
+> reference implementation for asynchronous human–AI software development.
+
+This is the most precise definition of Prokron. It is a protocol in a narrow
+sense: a set of Markdown records and rules for keeping them, which any person
+or agent can follow without the tool. The `prokron` compiler is one reference
+implementation of that protocol. It is not a framework that code runs inside,
+and it is not a project-management service.
+
 This document explains why Prokron is shaped the way it is. The
 [README](../README.md) shows what it does; the [specification](SPEC.md) defines
 the records and the working lifecycle. This is the reasoning between them.

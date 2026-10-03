@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
-  "title": "Prokron: project management that a person and an AI can both read",
-  "description": "<p>Prokron keeps people and AI agents working from the same project state.</p><p>A project's phases, tasks, dependencies, decisions and definition of done live as Markdown inside its repository. A deterministic compiler, written with the Python standard library and no network or model provider, turns those documents into project state: what is done, what is ready, what is blocked, which gates pass, what sits on the critical path, and what evidence exists for any claim that work is finished. The same state is projected two ways &mdash; a browsable dashboard for a person, and a structured context packet for an agent &mdash; so neither side gets a private version of the truth.</p><p>Completion is governed by acceptance contracts that freeze when work starts, and disagreements are resolved by a stated arbitration order rather than by seniority. Prokron owns project understanding, not project execution.</p>",
+  "title": "Prokron: repository-native project memory and governance for human-AI software development",
+  "description": "<p>Prokron is a repository-native project-state protocol and reference implementation for asynchronous human-AI software development.</p><p>It keeps people and coding agents working from the same explicit project state by storing phases, tasks, dependencies, decisions, acceptance contracts and evidence as versioned Markdown inside the repository. A deterministic compiler, written with the Python standard library and no network or model provider, derives project state from those records and projects it as an interactive dashboard for humans and structured context for agents.</p><p>Prokron is designed to preserve project authority, causal history and definition of done across asynchronous human and AI work without relying on hidden agent memory. It owns project understanding, not project execution.</p>",
   "creators": [
     {
       "name": "Qomero"
@@ -10,16 +10,18 @@
   "license": "Apache-2.0",
   "access_right": "open",
   "keywords": [
+    "project memory",
+    "project governance",
     "project management",
     "software engineering",
-    "AI agents",
+    "AI coding agents",
     "human-AI collaboration",
     "shared project state",
+    "agentic software development",
     "architectural decision records",
-    "acceptance criteria",
-    "provenance",
-    "reproducibility",
-    "developer tools"
+    "acceptance contracts",
+    "software provenance",
+    "reproducibility"
   ],
   "related_identifiers": [
     {
