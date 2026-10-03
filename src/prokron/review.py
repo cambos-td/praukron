@@ -59,6 +59,87 @@ if (aSearch) {
 }
 """
 
+# The review rule, kept pure so it can be tested without a browser.
+DECIDE_JS = """
+function reviewItems(entries) {
+  const items = [];
+  for (const e of entries) {
+    if (e.guide) { if (e.text.trim()) items.push({ target: e.target, action: 'GUIDE', text: e.text }); continue; }
+    if (e.choice === 'FEEDBACK') {
+      if (!e.text.trim()) throw new Error(e.target + ': write your feedback, or choose OK');
+      items.push({ target: e.target, action: e.action, text: e.text });
+    } else if (e.seen || e.reviewed) {
+      items.push({ target: e.target, action: 'CONFIRM', text: 'OK' });
+    }
+  }
+  return items;
+}
+"""
+
+# Only the served page carries this: the static file never contains a write.
+SERVE_SCRIPT = DECIDE_JS + """
+// Served review (prokron dashboard --serve). Present only when forms exist.
+// A card left at OK records CONFIRM only if the owner opened it or marked it
+// reviewed; an unopened card records nothing (ADR-055).
+const reviewBars = [...document.querySelectorAll('.review-bar')];
+if (reviewBars.length) {
+  const token = new URLSearchParams(location.search).get('token') || '';
+  const names = [...document.querySelectorAll('.review-by')];
+  let remembered = '';
+  try { remembered = localStorage.getItem('prokron-reviewer') || ''; } catch (e) {}
+  names.forEach(n => { n.value = remembered; n.addEventListener('input', () => {
+    names.forEach(o => { if (o !== n) o.value = n.value; });
+    try { localStorage.setItem('prokron-reviewer', n.value); } catch (e) {} }); });
+  acards.forEach(card => card.addEventListener('toggle', () => { if (card.open) card.dataset.seen = '1'; }));
+  document.querySelectorAll('.aform textarea').forEach(area => area.addEventListener('input', () => {
+    const form = area.closest('.aform');
+    const feedback = form.querySelector('input[value="FEEDBACK"]');
+    if (feedback && area.value.trim()) feedback.checked = true;
+  }));
+  function collect() {
+    return reviewItems([...document.querySelectorAll('.aform')].map(form => {
+      const card = form.closest('details.acard');
+      const radio = form.querySelector('input[type="radio"]:checked');
+      const select = form.querySelector('select');
+      const reviewed = form.querySelector('.reviewed');
+      return { target: form.dataset.target, guide: !!form.dataset.guide,
+               text: form.querySelector('textarea').value,
+               choice: radio ? radio.value : 'CONFIRM', action: select ? select.value : 'REVISE',
+               seen: !!card && card.dataset.seen === '1', reviewed: !!reviewed && reviewed.checked };
+    }));
+  }
+  reviewBars.forEach(bar => bar.querySelector('button').addEventListener('click', async () => {
+    const out = bar.querySelector('.review-result');
+    try {
+      const by = bar.querySelector('.review-by').value.trim();
+      if (!by) throw new Error('Enter your name: every answer records who gave it.');
+      const items = collect();
+      if (!items.length) throw new Error('Nothing to record: open a card to confirm it, or write feedback.');
+      const response = await fetch('/respond', { method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Prokron-Token': token },
+        body: JSON.stringify({ by, items }) });
+      const result = await response.json();
+      if (!result.ok) throw new Error(result.error);
+      out.textContent = 'Recorded ' + result.ids.join(', ') + '. Reloading…';
+      location.reload();
+    } catch (error) { out.textContent = error.message; }
+  }));
+}
+"""
+
+
+def script(interactive: bool) -> str:
+    return SCRIPT + (SERVE_SCRIPT if interactive else "")
+
+
+def review_bar(interactive: bool) -> str:
+    """Name, submit, and result; one per panel that holds a form."""
+    if not interactive:
+        return ""
+    return ('<div class="controls review-bar"><input type="text" class="review-by" aria-label="Your name"'
+            ' placeholder="Your name (recorded with every answer)">'
+            '<button type="button">Submit review</button><span class="review-result" aria-live="polite"></span></div>')
+
 
 def esc(value: object) -> str:
     return html.escape("" if value is None else str(value), quote=True)
@@ -161,7 +242,10 @@ def panel_body(compiled: dict, ref, interactive: bool = False) -> str:
     def form(a: dict) -> str:
         return (
             f'<div class="aform" data-target="{esc(a["id"])}">'
-            f'<label><input type="radio" name="d-{esc(a["id"])}" value="CONFIRM" checked> OK</label>'
+            + (f'<p class="perm">This is an access rule the agent assumed: {esc(a["permissions"])}. '
+               "OK confirms it as the rule.</p>" if a["permissions"] else "")
+            + f'<label><input type="radio" name="d-{esc(a["id"])}" value="CONFIRM" checked> OK</label>'
+            f'<label><input type="checkbox" class="reviewed"> Mark reviewed</label>'
             f'<label><input type="radio" name="d-{esc(a["id"])}" value="FEEDBACK"> Feedback</label>'
             f'<select aria-label="Action for {esc(a["id"])}"><option value="REVISE">Revise</option>'
             '<option value="REJECT">Reject</option><option value="GUIDE">Guide</option></select>'
@@ -230,6 +314,10 @@ def panel_body(compiled: dict, ref, interactive: bool = False) -> str:
         + select("assume-status", "Status", [(s, s) for s in statuses])
         + select("assume-kind", "Kind", [("permission", "Permissions")])
         + f'<span class="shown" id="assume-shown" aria-live="polite">{len(assumptions)} of {len(assumptions)}</span></div>'
+        + review_bar(interactive)
+        + ('<p class="note">Each card starts at OK. A card you open or mark reviewed is recorded as '
+           "confirmed when you submit; a card you never open records nothing. Feedback is recorded "
+           "verbatim with your name.</p>" if interactive else "")
         + '<h3>Needs your review</h3>'
         + (queue or '<p class="note">Nothing waits for your review.</p>')
         + "<h3>Waiting for the agent</h3>"

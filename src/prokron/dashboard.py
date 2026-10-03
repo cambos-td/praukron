@@ -1531,6 +1531,7 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
   <h2>Ready</h2>
   <div class="tablewrap"><table>{table_head}<tbody>{task_rows(ready_execution)}</tbody></table></div>
   <h2>Obstacles</h2>
+  {review.review_bar(interactive and bool(owner_held))}
   {obstacles}
   <h2>Owner guidance</h2>
   {review.guidance(compiled, ref)}
@@ -1668,7 +1669,7 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
 <script type="application/json" id="diagram-data">{embed(diagrams)}</script>
 <script type="application/json" id="node-map">{embed(node_map)}</script>
 <script src="{MERMAID_CDN}" onerror="window.mermaidFailed=true"></script>
-<script>{_SCRIPT}{review.SCRIPT}</script>
+<script>{_SCRIPT}{review.script(interactive)}</script>
 </body>
 </html>
 """

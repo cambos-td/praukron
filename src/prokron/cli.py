@@ -129,6 +129,10 @@ def cmd_dashboard(root: Path, args: argparse.Namespace) -> int:
     refused = _refuse_newer(root, args)
     if refused is not None:
         return refused
+    if args.serve:
+        from . import serve
+
+        return serve.run(root, args.port, args.open)
     project = _load(root)
     report = analytics.report(project)
     compiled = compiler.as_json(project)
@@ -531,6 +535,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     board = subparsers.add_parser("dashboard", help="write the static dashboard")
     board.add_argument("--open", action="store_true", help="open it in a browser")
+    board.add_argument("--serve", action="store_true",
+                       help="serve it on 127.0.0.1 so the owner can answer assumptions and blockers")
+    board.add_argument("--port", type=int, default=0, help="port for --serve; 0 picks a free one")
     board.add_argument("--force", action="store_true", help="overwrite views from a newer runtime")
     board.set_defaults(handler=cmd_dashboard)
 
