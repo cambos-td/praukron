@@ -14,14 +14,16 @@ Before reading broad repository context or the rest of `.prokron/chronicle/`:
 1. Read `.prokron/chronicle/INDEX.md`. It is generated from the chronicle and
    says what matters now and where each record lives. If it is missing, run
    `.prokron/prokron compile`.
-2. Identify your task: the one you were given, or one the index or
-   `.prokron/prokron context` names as in flight or ready. Then run
+2. Identify your task: the one you were given, or one the index names as in
+   flight or ready. Run `.prokron/prokron context` without a task only when
+   the index is not enough to choose; skip it when a task was given. Then run
    `.prokron/prokron context <task>` for its lineage (thesis → phase → module),
    claim, dependencies, blockers, acceptance, invariants, decisions, evidence,
    implementation anchors, and the exact `file#anchor` records to read. Do not start a task merely because
    unrelated work is visible in the repository.
 3. Read only those records. `.prokron/prokron retrieve "<question or task>"`
-   returns exactly them, each labelled with its source.
+   returns exactly them, each labelled with its source. The packet already
+   carries the handoff; do not read `HANDOFF.md` again.
 4. Do not load the whole chronicle by default. Read further Markdown only to
    resolve an ambiguity or when the packet is not enough.
 5. Explore the code only after the project context is resolved. Where
