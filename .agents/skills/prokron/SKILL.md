@@ -22,6 +22,9 @@ takes its phase from its module), a `Domain:`
 (`execution` or `operations`), and an acceptance contract, and append an ADR to `.prokron/chronicle/ADR/` as soon as a material
 decision is made or acted on. Keep the single intent at the exact execution point. A task is
 done only when its frozen contract in `ACCEPTANCE.md` has sufficient evidence.
+When a choice has no answer in authority, follow the assumption procedure in
+`AGENTS.md`: record an assumption before relying on it, stop for the owner on a
+reserved choice, and never edit `RESPONSES.md`.
 
 Checkpoint automatically before a handoff, compaction, session ending, or any
 known or estimated context, token, time, rate, or quota limit. Without telemetry,

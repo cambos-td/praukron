@@ -81,6 +81,27 @@ choice is made, accepted, or acted on, append its ADR to `.prokron/chronicle/ADR
 immediately and link affected tasks. Supersede decisions instead of overwriting
 them. Keep the compiled views synchronized.
 
+## Assumptions and the owner
+
+When a choice has no answer, search authority first: ADRs, contracts, the task
+packet, the journal, documentation, and code. Research externally when that is
+useful and permitted; researched is not confirmed. Then exactly one of:
+
+- authority resolves it: follow it;
+- the packet's `policy` reserves it, or it is destructive, irreversible, or
+  contradicts an accepted ADR or a frozen criterion: create or name a task with
+  `Authority: owner` that the work depends on, notify the owner through your
+  host when the policy says `Notify: host` and record when and how on that
+  task, and continue other work;
+- otherwise assume: record it in `ASSUMPTIONS.md` before relying on it, cite
+  its id where it is applied and in any evidence that rests on it, and mark a
+  permission choice with `Permissions:` and `Impact: HIGH`.
+
+Never present an `OPEN` assumption as decided. `RESPONSES.md` is the owner's
+words: act on every response the packet shows as awaiting reconciliation, and
+never edit or clear one. Feedback the owner gives anywhere else goes into
+`RESPONSES.md` verbatim, `Via: relayed by <you> from <channel>`, before you act.
+
 ## Completion
 
 A task is not done because you say it is done. It is done when every mandatory

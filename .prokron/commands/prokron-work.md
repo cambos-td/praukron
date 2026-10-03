@@ -25,3 +25,14 @@ for a tool call, command, mutation, failure, or retry that could later explain
 an execution failure, a blocked gate, or a regression, naming the task it came
 from and what it affects. Summarize; never record secrets, credentials, or
 private reasoning.
+
+When a choice has no answer in authority, follow the assumption procedure in
+`AGENTS.md` and `docs/SPEC.md` §2.4: read the packet's `policy`; resolve it
+from authority, assume it, or stop for the owner. Record an assumption in
+`ASSUMPTIONS.md` before relying on it and cite its id where it is applied and
+in any criterion evidence that rests on it; mark a permission choice with
+`Permissions:` and `Impact: HIGH`. A reserved choice becomes an
+`Authority: owner` task the work depends on; notify the owner through the host
+when the policy says `Notify: host`, record the time and channel on that task,
+and continue other work. Before building on an assumption, reconcile any owner
+response the packet shows as awaiting reconciliation.

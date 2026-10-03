@@ -101,6 +101,57 @@ class TestAssumptionSpecification(unittest.TestCase):
         self.assertEqual(outputs[0], outputs[1])
 
 
+class TestAgentGuidance(unittest.TestCase):
+    """T-ASSUME-AGENT-01: every agent surface teaches the same procedure."""
+
+    def test_agents_md_and_work_give_the_decision_procedure(self) -> None:
+        agents = _flat((ROOT / "AGENTS.md").read_text())
+        for rule in ("search authority first", "researched is not confirmed",
+                     "authority resolves it: follow it", "`Authority: owner`",
+                     "`Notify: host`", "record it in `ASSUMPTIONS.md` before relying on it",
+                     "cite its id where it is applied and in any evidence that rests on it",
+                     "`Permissions:` and `Impact: HIGH`",
+                     "Never present an `OPEN` assumption as decided"):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, agents)
+        work = _flat((ROOT / ".prokron/commands/prokron-work.md").read_text())
+        for rule in ("read the packet's `policy`", "before relying on it",
+                     "in any criterion evidence that rests on it", "`Authority: owner` task",
+                     "record the time and channel on that task", "continue other work"):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, work)
+
+    def test_checkpoint_reconciles_and_never_edits_owner_text(self) -> None:
+        text = _flat((ROOT / ".prokron/commands/prokron-checkpoint.md").read_text())
+        for rule in ("Reconcile every owner response", "awaiting reconciliation",
+                     "through an Acceptance Change Request", "`Reconciled by`",
+                     "Never edit, reorder, or clear an entry in `RESPONSES.md`",
+                     "`Via: relayed by <agent> from <channel>`",
+                     "the open assumptions and owner-held blockers"):
+            with self.subTest(rule=rule):
+                self.assertIn(rule, text)
+        agents = _flat((ROOT / "AGENTS.md").read_text())
+        self.assertIn("never edit or clear one", agents)
+        self.assertIn("`Via: relayed by <you> from <channel>`", agents)
+
+    def test_every_host_carries_the_same_rules_and_the_installer_ships_them(self) -> None:
+        for command in ("work", "checkpoint"):
+            for host in (".claude", ".opencode"):
+                with self.subTest(host=host, command=command):
+                    self.assertIn(f".prokron/commands/prokron-{command}.md",
+                                  (ROOT / host / "commands" / f"prokron-{command}.md").read_text())
+        skill = _flat((ROOT / ".agents/skills/prokron/SKILL.md").read_text())
+        self.assertIn("assumption procedure in `AGENTS.md`", skill)
+        self.assertIn("never edit `RESPONSES.md`", skill)
+        installer = (ROOT / "install.sh").read_text()
+        for shipped in ('"$source_dir/.prokron/commands/prokron-$command.md"',
+                        '"$source_dir/.claude/commands/prokron-$command.md"',
+                        '"$source_dir/.opencode/commands/prokron-$command.md"',
+                        '"$source_dir/.agents/skills/prokron/SKILL.md"',
+                        'install_block AGENTS.md "$source_dir/AGENTS.md"'):
+            self.assertIn(shipped, installer)
+
+
 ASSUMPTIONS = """# Assumptions
 
 ## A-1: Payment term defaults to thirty days
