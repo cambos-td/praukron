@@ -30,6 +30,11 @@ Before reading broad repository context or the rest of `.prokron/chronicle/`:
    CodeGraph is installed, `.prokron/prokron retrieve <task> --code` adds code
    structure after the records, never before them.
 
+Use the narrowest projection that answers the current question, and expand
+progressively: index, then the task packet, then `retrieve`, then the exact
+record, then the code. Never preload the whole chronicle, `TASK_GRAPH.md`, or
+`project.json`, and never re-read what the current packet already holds.
+
 `INDEX.md`, `.prokron/compiled/`, and `context` output are derived maps, not
 authority; never edit them. When one disagrees with a record, the record wins:
 report the inconsistency rather than reconciling it silently. A packet's
