@@ -18,7 +18,7 @@ import re
 
 from .analytics import Report
 from .model import DOMAINS, EVENT_TYPES, STATUSES, VALIDATIONS, Project
-from . import mermaid
+from . import mermaid, review
 
 MERMAID_CDN = "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"
 
@@ -105,6 +105,7 @@ summary:focus-visible, .chips button:focus-visible, .theme button:focus-visible 
   outline: 2px solid var(--accent); outline-offset: 2px; }
 html.js .panel { display: none; }
 html.js[data-tab="overview"] #panel-overview,
+html.js[data-tab="assumptions"] #panel-assumptions,
 html.js[data-tab="execution"] #panel-execution,
 html.js[data-tab="graph"] #panel-graph,
 html.js[data-tab="operations"] #panel-operations,
@@ -684,7 +685,7 @@ function graphShown() {
 // Which tab is open is presentation state. It lives in the URL hash, so a
 // reload or a shared link opens the same view, and it never touches authority.
 
-const TOP = ['overview', 'execution', 'graph', 'operations', 'governance', 'decisions', 'tasks'];
+const TOP = ['overview', 'assumptions', 'execution', 'graph', 'operations', 'governance', 'decisions', 'tasks'];
 const topTabs = [...document.querySelectorAll('.toptabs [role="tab"]')];
 
 function selectTab(name, { focus = false, record = true } = {}) {
@@ -860,6 +861,7 @@ def _domain_pill(domain: str) -> str:
 
 TOP_TABS = (
     ("overview", "Overview"),
+    ("assumptions", "Assumptions"),
     ("execution", "Execution"),
     ("graph", "Graph"),
     ("operations", "Operations"),
@@ -895,12 +897,12 @@ _BOOT = """(function () {
   }
   root.setAttribute('data-theme', theme);
   var tab = location.hash.slice(1);
-  var known = ['overview', 'execution', 'graph', 'operations', 'governance', 'decisions', 'tasks'];
+  var known = ['overview', 'assumptions', 'execution', 'graph', 'operations', 'governance', 'decisions', 'tasks'];
   root.setAttribute('data-tab', known.indexOf(tab) >= 0 ? tab : 'overview');
 })();"""
 
 
-def render(project: Project, report: Report, compiled: dict) -> str:
+def render(project: Project, report: Report, compiled: dict, interactive: bool = False) -> str:
     """Lay out the compiled project. Every selection — what is in flight, what
     blocks, which gate is next, which domain a task belongs to — was made by
     analytics and arrives in `compiled`; nothing here decides it (ADR-045)."""
@@ -1584,6 +1586,7 @@ def render(project: Project, report: Report, compiled: dict) -> str:
   </div>
   <div class="box" id="decision-list">{decision_items or '<p class="note">No decisions recorded.</p>'}</div>
 """)
+    assumptions_panel = panel("assumptions", review.panel_body(compiled, ref, interactive))
     registry = panel("tasks", f"""
   <h2>All tasks</h2>
   <div class="controls">
@@ -1605,7 +1608,7 @@ def render(project: Project, report: Report, compiled: dict) -> str:
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{esc(project.name)} — project state</title>
 <script>{_BOOT}</script>
-<style>{_STYLE}</style>
+<style>{_STYLE}{review.STYLE}</style>
 </head>
 <body>
 <main>
@@ -1626,6 +1629,7 @@ def render(project: Project, report: Report, compiled: dict) -> str:
 
   <nav class="toptabs" role="tablist" aria-label="Report sections">{tab_buttons}</nav>
 {overview}
+{assumptions_panel}
 {execution_panel}
 {graph}
 {operations_panel}
@@ -1645,7 +1649,7 @@ def render(project: Project, report: Report, compiled: dict) -> str:
 <script type="application/json" id="diagram-data">{embed(diagrams)}</script>
 <script type="application/json" id="node-map">{embed(node_map)}</script>
 <script src="{MERMAID_CDN}" onerror="window.mermaidFailed=true"></script>
-<script>{_SCRIPT}</script>
+<script>{_SCRIPT}{review.SCRIPT}</script>
 </body>
 </html>
 """

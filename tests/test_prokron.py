@@ -1031,15 +1031,15 @@ class TestDashboardTabs(FixtureCase):
         body = self.html.split(f'id="panel-{name}"', 1)[1]
         return re.split(r'<section class="panel"|<footer>', body, maxsplit=1)[0]
 
-    def test_seven_top_level_tabs_in_order_with_overview_first(self) -> None:
+    def test_eight_top_level_tabs_in_order_with_overview_first(self) -> None:
         tabs = re.findall(r'role="tab" id="tab-(\w+)"[^>]*aria-selected="(\w+)"[^>]*>([^<]+)<', self.html)
         self.assertEqual(
             [(name, label) for name, _, label in tabs],
-            [("overview", "Overview"), ("execution", "Execution"), ("graph", "Graph"),
+            [("overview", "Overview"), ("assumptions", "Assumptions"), ("execution", "Execution"), ("graph", "Graph"),
              ("operations", "Operations"), ("governance", "Governance"),
              ("decisions", "Decisions"), ("tasks", "All Tasks")],
         )
-        self.assertEqual([selected for _, selected, _ in tabs], ["true"] + ["false"] * 6)
+        self.assertEqual([selected for _, selected, _ in tabs], ["true"] + ["false"] * 7)
         for name, _, _ in tabs:
             self.assertIn(f'id="panel-{name}" role="tabpanel" aria-labelledby="tab-{name}"', self.html)
         self.assertIn("root.setAttribute('data-tab', known.indexOf(tab) >= 0 ? tab : 'overview')", self.html)
@@ -1047,7 +1047,8 @@ class TestDashboardTabs(FixtureCase):
 
     def test_only_the_selected_panel_is_displayed(self) -> None:
         self.assertIn("html.js .panel { display: none; }", self.html)
-        for name in ("overview", "execution", "graph", "operations", "governance", "decisions", "tasks"):
+        for name in ("overview", "assumptions", "execution", "graph", "operations", "governance",
+                     "decisions", "tasks"):
             self.assertIn(f'html.js[data-tab="{name}"] #panel-{name}', self.html)
 
     def test_sections_live_under_their_tabs(self) -> None:
