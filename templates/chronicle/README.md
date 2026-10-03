@@ -61,6 +61,10 @@ question that an authored document answers.
   authority and never counts as progress.
 - `TECH_DEBT.md` is the register of known technical debt: what each compromise
   costs, its trigger, and its exit condition. A debt is a liability, not a task.
+- `ASSUMPTIONS.md` is the register of provisional agent assumptions. An
+  assumption holds no authority; the records it is applied in do.
+- `RESPONSES.md` is the owner's input, verbatim and append-only. Agents read and
+  reconcile it and never edit it.
 - `.prokron/compiled/STATE.md` and `.prokron/compiled/TASK_GRAPH.md` are
   views. They report authority and never override it.
 
@@ -92,8 +96,12 @@ question that an authored document answers.
    "nothing."
 9. Append an event to `TRACE.md` when an action could later explain a failure,
    a blocked gate, or a regression. Never record secrets or private reasoning.
-10. Keep entries concise. Put product rules in the specification and durable
-   implementation choices in ADRs, not in the session diary.
+10. When a choice has no answer in authority, record it in `ASSUMPTIONS.md`
+   before relying on it, unless the assumption policy reserves it; a reserved
+   choice becomes an `Authority: owner` task. Reconcile every owner response in
+   `RESPONSES.md` and never edit one.
+11. Keep entries concise. Put product rules in the specification and durable
+    implementation choices in ADRs, not in the session diary.
 
 ## Checkpoint trigger
 

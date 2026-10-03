@@ -2,7 +2,8 @@
 
 Create `.prokron/chronicle/` with `README.md`, `THESIS.md`, `PHASES.md`, `MODULES.md`,
 `TASKS.md`, `ACCEPTANCE.md`,
-`ADR/`, `INTENT.md`, `HANDOFF.md`, and `JOURNAL.md` if absent, and `.prokron/compiled/`
+`ADR/`, `INTENT.md`, `HANDOFF.md`, `JOURNAL.md`, `ASSUMPTIONS.md`, and
+`RESPONSES.md` if absent, and `.prokron/compiled/`
 for compiled views.
 
 If the chronicle already contains tasks, decisions, intent, or journal entries,
@@ -26,3 +27,20 @@ decisions made from this session onward. Do not inspect the repository to invent
 a historical chronicle. If the owner wants the decisions the code already
 depends on recorded, they can ask for `.prokron/commands/prokron-baseline.md`
 separately; initialization never runs it.
+
+In either mode, offer the owner one optional step: the assumption policy
+(`docs/SPEC.md` §2.4). Ask which of these groups an agent may assume
+provisionally and which must stop for the owner: `permission` (who may see,
+create, change, approve, or delete what), `security` (authentication, secrets
+and credentials, exposing a service or data beyond the project),
+`external-disclosure` (sending project data to an outside service), `legal`
+(legal, compliance, contractual, or pricing commitments), and
+`source-of-truth` (which system or record owns a fact). Ask also whether an
+agent that stops should notify the owner through its host. Say that
+destructive or irreversible actions, and contradicting an accepted ADR or a
+frozen criterion, always stop whatever the answer. Record the answer as an
+`ACCEPTED` ADR naming the owner as its authority, with the fields
+`- Policy: assumptions`, `- Reserved: <groups, comma-separated, or none>`,
+and `- Notify: host` or `- Notify: none`. If the owner skips the step, record
+nothing: every group is reserved and `Notify: host` applies by default. Ask it
+once; the policy changes later only by superseding that ADR.

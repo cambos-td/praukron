@@ -148,7 +148,73 @@ credentials, hidden instructions, or private reasoning, and validation warns
 when an event looks like it does. A project has operational history only from
 when it starts writing `TRACE.md`; nothing is reconstructed from the journal.
 
-### 2.4 The index and retrieval
+### 2.4 Assumptions, owner responses, and owner-held tasks
+
+`ASSUMPTIONS.md` holds `## A-<id>: <title>` records of choices an agent made
+provisionally so work could continue (ADR-054): `Status` (`OPEN`,
+`CONFIRMED`, `REVISED`, `REJECTED`, `WITHDRAWN`), `Tasks`, `Impact` (`LOW`,
+`MEDIUM`, `HIGH`), `Recorded` (date · agent), `Assumption`, `Basis`,
+`Applied in`, optional `Permissions`, `Responses`, and `Reconciled by`. An
+assumption holds no authority by itself; the ADR, task, criterion, or
+document it is applied in does. Its phase and module come from its tasks.
+`HIGH` means the choice changes money, permissions, data shape or authority,
+or external behaviour, or reverting it needs a data migration; `MEDIUM`
+changes behaviour reversibly in code; `LOW` is presentation or wording.
+
+`RESPONSES.md` holds the owner's input, `## R-<n>: <target> <ACTION>` with
+`By`, `Date`, `Via`, and the owner's text verbatim as a blockquote. It is
+append-only: no agent edits, reorders, normalizes, or clears an entry.
+`CONFIRM`, `REVISE`, and `REJECT` target assumptions; `GUIDE` targets an
+assumption or a task and never changes a status, a criterion, or an ADR.
+Feedback the owner gives elsewhere is recorded here verbatim, `Via: relayed
+by <agent> from <channel>`, before an agent acts on it.
+
+A task with `Authority: owner` is work only a named person can finish. It may
+be `DONE` only with `Validation: HUMAN_VERIFIED`.
+
+**The boundary.** Before assuming, an agent searches authority: ADRs,
+contracts, its task packet, the journal, documentation, and code. It
+researches externally when that is useful and permitted; researched is not
+confirmed. If authority resolves the choice, there is nothing to assume. If
+the choice is reserved, the agent creates or names an `Authority: owner` task
+that the work depends on, notifies the owner when the policy says so, and
+continues other work. Otherwise it records the assumption before relying on
+it, cites its id where it is applied and in any criterion evidence resting on
+it, and never presents an `OPEN` assumption as decided.
+
+**The policy** is per project (ADR-057): the newest `ACCEPTED` ADR carrying
+`Policy: assumptions`, with `Reserved:` (any of `permission`, `security`,
+`external-disclosure`, `legal`, `source-of-truth`, or `none`) and `Notify:`
+(`host` or `none`). `/prokron-init` offers to record it. Without one, all five
+groups are reserved and `Notify: host` applies. `permission` covers who may
+see, create, change, approve, or delete what; `security` covers
+authentication, secrets and credentials, and exposing a service or data
+beyond the project. Whatever the policy says, destructive or irreversible
+actions are reserved, and so is contradicting an accepted ADR or a frozen
+criterion, which needs a superseding ADR or an Acceptance Change Request. A
+project may change the policy only by superseding its policy ADR. An allowed
+permission assumption carries `Permissions:` and is `HIGH`. With
+`Notify: host`, a stopped agent notifies the owner through its host's own
+channel and records the time and channel on the owner task; Prokron sends
+nothing itself.
+
+**Lifecycle.**
+
+| Transition | Who | Authority that must change | History kept |
+|---|---|---|---|
+| new → `OPEN` | agent | the record; its id cited where applied | the record |
+| `OPEN` → `CONFIRMED` | owner `CONFIRM`; agent sets the status | none required | the response |
+| `OPEN`/`CONFIRMED` → `REVISED` | owner `REVISE`; agent reconciles | superseding ADR, ACR, task, document, or code, named in `Reconciled by` | response and reconciliation |
+| `OPEN` → `REJECTED` | owner `REJECT`; agent reconciles | as for `REVISED`; applied work reverted or superseded | response and reconciliation |
+| `OPEN` → `WITHDRAWN` | agent, when authority or a fact resolves it | `Reconciled by` names the record | the record |
+| any, plus `GUIDE` | owner | none | the response |
+
+*Responded* means a decisive response targets the assumption. *Reconciled*
+means its status matches that response and, for `REVISE` or `REJECT`,
+`Reconciled by` is set. A response not yet reconciled is reported, never
+resolved, by the compiler; no status is ever derived into authority.
+
+### 2.5 The index and retrieval
 
 `INDEX.md` is compiled into the chronicle by `prokron compile` (ADR-047). It is
 the one generated file there: never authored, never parsed as authority, and
