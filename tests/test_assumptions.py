@@ -409,7 +409,7 @@ class TestAssumptionProjection(AssumptionCase):
         acceptance = next(o for o in self.data["obstacles"] if o["type"] == "ACCEPTANCE_BLOCKER")
         self.assertEqual(acceptance["actor"], "owner")
         self.assertEqual(self.data["assumptionReport"]["waitingOnOwner"],
-                         [{"task": "T-THREE", "unblock": "the owner finishes T-TWO"}])
+                         [{"task": "T-THREE", "holders": ["T-TWO"], "unblock": "the owner finishes T-TWO"}])
         self.assertEqual(self.data["execution"]["mainBlocker"]["actor"], "agent")
 
     def test_the_task_packet_carries_its_assumptions_and_the_owners_words(self) -> None:

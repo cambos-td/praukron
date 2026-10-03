@@ -396,6 +396,8 @@ class Obstacle:
     # what would clear it (ADR-054).
     actor: str = "agent"
     unblock: str = ""
+    # The owner-held tasks a dependency path ends at, when the actor is the owner.
+    holders: list[str] = field(default_factory=list)
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -407,6 +409,7 @@ class Obstacle:
             "variant": self.variant,
             "actor": self.actor,
             "unblock": self.unblock,
+            "holders": self.holders,
         }
 
 

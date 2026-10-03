@@ -1045,6 +1045,11 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
         )
     else:
         blocker_card = '<div class="v">Nothing is blocking execution</div>'
+    if blocker:
+        blocker_card += (
+            f'<div class="more"><strong>To unblock:</strong> {esc(blocker["unblock"])} · '
+            f'<strong>Who acts:</strong> {esc(blocker["actor"])}</div>'
+        )
 
     gate = execution["nextGate"]
     if gate:
@@ -1183,10 +1188,16 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
         )
 
     # --- Execution ---------------------------------------------------------
-    def obstacle_item(item: dict) -> str:
+    def obstacle_item(item: dict, offer_guide: bool = False) -> str:
+        # What is blocked (the subject), why (the detail), what clears it,
+        # and who must act: all four from compiled fields, none invented here.
         return (
             f'<li>{_pill(item["type"])} {ref(item["subject"])}<br>'
-            f'<span class="note">{esc(item["detail"])}</span></li>'
+            f'<span class="note">{esc(item["detail"])}</span><br>'
+            f'<span class="note"><strong>To unblock:</strong> {esc(item.get("unblock", ""))} · '
+            f'<strong>Who acts:</strong> {esc(item.get("actor", "agent"))}</span>'
+            + ("".join(review.guide(h, interactive) for h in item.get("holders", [])) if offer_guide else "")
+            + "</li>"
         )
 
     execution_obstacles = [o for o in compiled["obstacles"] if o.get("domain", "execution") == "execution"]
@@ -1205,7 +1216,10 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
             continue
         if items:
             groups.append((label, items, True, ""))
-    dependency = [o for o in execution_obstacles if o["type"] == "DEPENDENCY_BLOCKER"]
+    owner_held = [o for o in execution_obstacles
+                  if o["type"] == "DEPENDENCY_BLOCKER" and o.get("actor") == "owner"]
+    dependency = [o for o in execution_obstacles
+                  if o["type"] == "DEPENDENCY_BLOCKER" and o not in owner_held]
     direct = [o for o in dependency if any(b not in blocked for b in o["blockers"])]
     downstream = [o for o in dependency if o not in direct]
     if direct:
@@ -1219,10 +1233,13 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
     other = [o for o in execution_obstacles if o["type"] not in known_kinds]
     if other:
         groups.append(("Other obstacles", other, True, ""))
+    if owner_held:
+        groups.insert(0, ("Waiting on the owner", owner_held, True,
+                          '<p class="note">Only a named person can finish the work these wait on.</p>'))
     obstacles = "".join(
         f'<details class="group"{" open" if opened else ""}><summary>{esc(label)}'
         f'<span class="count">{len(items)}</span></summary>{note}'
-        f'<ul class="plain">{"".join(obstacle_item(o) for o in items)}</ul></details>'
+        f'<ul class="plain">{"".join(obstacle_item(o, label == "Waiting on the owner") for o in items)}</ul></details>'
         for label, items, opened, note in groups
     ) or '<p class="note">No execution obstacles. Everything open is startable.</p>'
 
@@ -1515,6 +1532,8 @@ def render(project: Project, report: Report, compiled: dict, interactive: bool =
   <div class="tablewrap"><table>{table_head}<tbody>{task_rows(ready_execution)}</tbody></table></div>
   <h2>Obstacles</h2>
   {obstacles}
+  <h2>Owner guidance</h2>
+  {review.guidance(compiled, ref)}
   {failures_section}
   <h2>Critical path</h2>
   {critical}

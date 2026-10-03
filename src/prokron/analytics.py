@@ -482,6 +482,7 @@ def _assign_actors(project: Project, result: Report) -> None:
             operations = [t for t in obstacle.blockers if project.task(t) and not project.task(t).execution]
             if owners:
                 obstacle.actor = "owner"
+                obstacle.holders = owners
                 obstacle.unblock = f"the owner finishes {', '.join(owners)}"
             elif operations:
                 obstacle.actor = "operations"
@@ -577,7 +578,7 @@ def assumption_report(project: Project, result: Report) -> dict[str, object]:
         if r.action == "GUIDE" and project.task(r.target) is not None and not project.task(r.target).done
     ]
     owner_blocked = [
-        {"task": o.subject, "unblock": o.unblock}
+        {"task": o.subject, "holders": o.holders, "unblock": o.unblock}
         for o in result.obstacles if o.type == "DEPENDENCY_BLOCKER" and o.actor == "owner"
     ]
     return {

@@ -73,6 +73,29 @@ def _pill(value: str) -> str:
     return f'<span class="pill {esc(value)}">{esc(value)}</span>'
 
 
+def guide(target: str, interactive: bool) -> str:
+    """Guidance on an owner-held blocker: a form when served, a hint when static."""
+    if interactive:
+        return (f'<div class="aform" data-target="{esc(target)}" data-guide="1">'
+                f'<textarea aria-label="Guidance on {esc(target)}" placeholder="Guidance for the agent on '
+                f'{esc(target)}, recorded verbatim"></textarea></div>')
+    return ('<span class="respond-hint">Guide: run <code>prokron dashboard --serve</code> to give the '
+            f'agent guidance on {esc(target)}.</span>')
+
+
+def guidance(compiled: dict, ref) -> str:
+    """Every GUIDE response on a task, verbatim, kept after the task is done."""
+    tasks = {t["id"]: t for t in compiled["tasks"]}
+    items = [r for r in compiled["responses"] if r["action"] == "GUIDE" and r["target"] in tasks]
+    if not items:
+        return '<p class="note">No owner guidance recorded.</p>'
+    return '<div class="box">' + "".join(
+        f'<p class="resp">{esc(r["text"])}<span class="who"> — {esc(r["by"])}, {esc(r["date"])} · on '
+        f'{ref(r["target"])} {_pill(tasks[r["target"]]["status"])} · {esc(r["id"])}</span></p>'
+        for r in items
+    ) + "</div>"
+
+
 def panel_body(compiled: dict, ref, interactive: bool = False) -> str:
     assumptions = compiled["assumptions"]
     report = compiled["assumptionReport"]
