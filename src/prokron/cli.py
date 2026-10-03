@@ -268,7 +268,9 @@ def cmd_context(root: Path, args: argparse.Namespace) -> int:
         packet = analytics.context(project, args.task, args.role)
     except KeyError:
         return _fail(f"No such task: {args.task}")
-    print(json.dumps(packet, indent=2))
+    # Compact by default: indentation is for people, and cost an agent about
+    # a fifth of every packet (ADR-059).
+    print(json.dumps(packet, indent=2) if args.pretty else json.dumps(packet, separators=(",", ":")))
     return 0
 
 
@@ -552,6 +554,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     packet.add_argument("task", nargs="?", help="omit for the project orientation packet")
     packet.add_argument("--role", choices=("builder", "reviewer"), default="builder")
+    packet.add_argument("--pretty", action="store_true", help="indent the JSON for reading")
     packet.set_defaults(handler=cmd_context)
 
     return parser

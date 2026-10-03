@@ -556,7 +556,8 @@ class TestScopedContext(FixtureCase):
         self.assertEqual(packet["phase"]["authority"], "PHASES.md#P1")
         self.assertEqual(packet["inFlight"], [])
         self.assertEqual([t["id"] for t in packet["ready"]], ["T-TWO"])
-        self.assertEqual([t["id"] for t in packet["blocked"]], ["T-THREE"])
+        self.assertEqual(packet["blocked"]["count"], 1)
+        self.assertEqual([t["id"] for t in packet["blocked"]["first"]], ["T-THREE"])
         self.assertEqual(packet["ready"][0]["authority"], "TASKS.md#T-TWO")
         self.assertEqual(packet["criticalPath"], report.critical_path)
         self.assertEqual(packet["mainBlocker"], report.main_blocker)
@@ -569,8 +570,9 @@ class TestScopedContext(FixtureCase):
         packet = analytics.context(self.project, None)
         self.assertEqual([t["id"] for t in packet["inFlight"]], ["T-TWO"])
         self.assertEqual(packet["ready"], [])
-        named = {t["id"] for key in ("inFlight", "operationsInFlight", "ready", "blocked")
-                 for t in packet[key]} | set(packet["criticalPath"])
+        named = {t["id"] for key in ("inFlight", "operationsInFlight", "ready")
+                 for t in packet[key]} | {t["id"] for t in packet["blocked"]["first"]} \
+            | set(packet["criticalPath"])
         self.assertLessEqual(named, {*report.wip, *report.ready, *report.blocked, *report.critical_path})
 
     def test_a_task_packet_names_its_relationships_and_records(self) -> None:
@@ -583,7 +585,7 @@ class TestScopedContext(FixtureCase):
         self.assertEqual(packet["task"]["implementation"]["files"], ["src/build.py"])
         self.assertEqual(packet["authority"]["read"], [
             "TASKS.md#T-TWO", "ACCEPTANCE.md#AC-T-TWO", "MODULES.md#M-FOUNDATION",
-            "PHASES.md#P1", "ADR/ADR-001.md",
+            "PHASES.md#P1", "ADR/ADR-001.md", "HANDOFF.md",
         ])
         for pointer in packet["authority"]["read"]:
             with self.subTest(pointer=pointer):
@@ -730,7 +732,9 @@ class TestHierarchy(FixtureCase):
                     "module": {"id": "M-FOUNDATION", "name": "Foundation and walls",
                                "outcome": "The structure stands."}}
         self.assertEqual(analytics.explain(self.project, "T-TWO")["lineage"], expected)
-        self.assertEqual(analytics.context(self.project, "T-TWO")["lineage"], expected)
+        # A task packet points to the thesis instead of repeating it (ADR-059).
+        pointed = {"thesisRef": "THESIS.md", **{k: v for k, v in expected.items() if k != "thesis"}}
+        self.assertEqual(analytics.context(self.project, "T-TWO")["lineage"], pointed)
         self.assertEqual(json.dumps(data, sort_keys=True),
                          json.dumps(compiler.as_json(compiler.load(self.root)), sort_keys=True))
 

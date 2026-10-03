@@ -753,7 +753,10 @@ def orientation(project: Project) -> dict[str, object]:
         "inFlight": [brief(t) for t in result.in_flight],
         "operationsInFlight": [brief(t) for t in result.wip if t not in execution],
         "ready": [brief(t) for t in result.ready if t in execution],
-        "blocked": [brief(t) for t in result.blocked if t in execution],
+        # A count and the first few, critical path first; the full list is
+        # `prokron status`. Dumping every blocked task cost more than the
+        # rest of the packet on a real project (ADR-059).
+        "blocked": _first(result, [t for t in result.blocked if t in execution], brief),
         "criticalPath": result.critical_path,
         "mainBlocker": result.main_blocker,
         "nextGate": result.next_gate,
@@ -761,6 +764,35 @@ def orientation(project: Project) -> dict[str, object]:
             "root": f"{layout.AUTHORITY_DIR}/",
             "read": ["INDEX.md", "INTENT.md", "HANDOFF.md"],
         },
+    }
+
+
+_BLOCKED_SHOWN = 10
+_RECENT_EVENTS = 5
+
+
+def _first(result: Report, task_ids: list[str], brief) -> dict[str, object]:
+    path = {task_id: index for index, task_id in enumerate(result.critical_path)}
+    ordered = sorted(task_ids, key=lambda t: (path.get(t, len(path)), task_ids.index(t)))
+    return {
+        "count": len(task_ids),
+        "first": [brief(t) for t in ordered[:_BLOCKED_SHOWN]],
+        "more": "prokron status" if len(task_ids) > _BLOCKED_SHOWN else None,
+    }
+
+
+def _event_summary(project: Project, task_id: str) -> dict[str, object]:
+    """Counts, every unresolved failure in full, and the most recent ids."""
+    related = set(events_for(project, task_id))
+    events = [e for e in project.events if e.id in related]
+    unresolved = set(unresolved_failures(project)) & related
+    return {
+        "total": len(events),
+        "failed": sum(1 for e in events if e.failed),
+        "unresolved": len(unresolved),
+        "unresolvedFailures": [e.as_json() for e in events if e.id in unresolved],
+        "recent": [e.id for e in events[-_RECENT_EVENTS:]],
+        "more": f"prokron explain {task_id}" if len(events) > _RECENT_EVENTS else None,
     }
 
 
@@ -815,10 +847,16 @@ def context(project: Project, task_id: str | None, role: str = "builder") -> dic
         *[_pointer(d.source) for d in decisions],
         *[_pointer(d.source) for d in debts],
     ]
+    authority.append("HANDOFF.md")
+    trail = lineage(project, task)
+    # The orientation packet and INDEX.md carry the thesis; a task packet
+    # points to it rather than repeating it (ADR-059).
+    trail = {"thesisRef": _pointer(project.thesis.source).split("#")[0], **{
+        k: v for k, v in trail.items() if k != "thesis"}}
     packet: dict[str, object] = {
         "role": role,
         "packetFor": task_id,
-        "lineage": lineage(project, task),
+        "lineage": trail,
         "intent": _relevant(project.intent, task_id),
         "phase": (
             {"id": phase.id, "outcome": phase.outcome, "status": phase.status}
@@ -846,6 +884,11 @@ def context(project: Project, task_id: str | None, role: str = "builder") -> dic
                     ),
                 }
                 for dependency in task.dependencies
+            ],
+            # What finishing this task makes startable, with its status.
+            "unlocks": [
+                {"id": d, "status": project.task(d).status}
+                for d in report_now.downstream.get(task.id, []) if project.task(d) is not None
             ],
             "closed": task.done,
             # The chronicle's working rule: a task is claimed by marking it
@@ -878,7 +921,7 @@ def context(project: Project, task_id: str | None, role: str = "builder") -> dic
              "status": project.task(o).status}
             for o in report_now.external_blockers.get(task_id, [])
         ],
-        "events": [e.as_json() for e in project.events if e.id in set(events_for(project, task_id))],
+        "events": _event_summary(project, task_id),
         # Debt this task introduced or repays, and debt its decisions created.
         "debt": [d.as_json() for d in debts],
         "handoff": _relevant(project.handoff, task_id),
