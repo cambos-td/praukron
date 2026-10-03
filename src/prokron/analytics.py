@@ -10,7 +10,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from . import layout
-from .model import Obstacle, Project, Task
+from .model import EXERCISED_CLASSES, Obstacle, Project, Task
 
 
 @dataclass
@@ -48,6 +48,9 @@ class Report:
     main_blocker: dict[str, object] | None = None
     next_gate: dict[str, object] | None = None
     execution_failures: list[dict[str, object]] = field(default_factory=list)
+    # Phase -> the earlier phase whose exit it waits on, when that is open.
+    phase_waits: dict[str, str] = field(default_factory=dict)
+    work_ahead: dict[str, object] | None = None
 
     def _criteria(self, tasks: list[Task]) -> list:
         referenced = {t.contract for t in tasks if t.contract}
@@ -88,10 +91,20 @@ class Report:
                 sum(1 for g in self.project.gates if g.status == "GREEN"),
                 len(self.project.gates),
             ).as_json(),
+            # Across every planned contract, including work not yet started.
             "acceptanceCompletion": Progress(
                 sum(1 for c in criteria if c.state == "PASS"), len(criteria)
             ).as_json(),
+            # The same criteria split by whether their task has started, so
+            # future work never reads as a quality shortfall.
+            "acceptanceBreakdown": {
+                "started": _states(self._criteria([t for t in tasks if t.status in ("WIP", "DONE")])),
+                "notStarted": _states(self._criteria([t for t in tasks if t.status not in ("WIP", "DONE")])),
+            },
             "validationBreakdown": _counts(t.validation for t in tasks),
+            # Validation coverage counts AI_REVIEWED and HUMAN_VERIFIED only,
+            # over every execution task. Said here so no view has to guess.
+            "validationCounts": list(validated),
             "statusBreakdown": _counts(t.status for t in tasks),
             "domainBreakdown": {
                 "execution": len(tasks),
@@ -146,6 +159,79 @@ def _counts(values) -> dict[str, int]:
     for value in values:
         counts[value] = counts.get(value, 0) + 1
     return counts
+
+
+def describe(metrics: dict[str, object], report: "Report") -> dict[str, str]:
+    """One wording of the headline figures, shared by status, STATE.md, and the dashboard."""
+    started = metrics["acceptanceBreakdown"]["started"]
+    later = metrics["acceptanceBreakdown"]["notStarted"]
+    coverage = metrics["validationCoverage"]
+    counts = metrics["validationBreakdown"]
+    project = report.project
+    done = [t for t in project.execution_tasks if t.done and t.validation not in ("AI_REVIEWED", "HUMAN_VERIFIED")]
+    with_evidence = sum(1 for t in done if exercised(project, t))
+    lines = {
+        "acceptanceStarted": (
+            f"started work: {started['PASS']} pass · {started['FAIL']} fail · {started['NOT_RUN']} not run"
+        ),
+        "acceptanceLater": f"not started: {sum(later.values())} criteria not reached yet",
+        "reviewed": (
+            f"{coverage['done']} / {coverage['total']} execution tasks AI_REVIEWED or HUMAN_VERIFIED"
+            f" · SYNTHETIC {counts.get('SYNTHETIC', 0)} · UNTESTED {counts.get('UNTESTED', 0)}"
+        ),
+        "unreviewed": (
+            f"{len(done)} done without review, {with_evidence} of them with exercised evidence"
+            if done else ""
+        ),
+        "workAhead": "",
+    }
+    ahead = report.work_ahead
+    if ahead:
+        exit_ = ahead["oldestOpenExit"]
+        phases = ", ".join(f"{k} {v}" for k, v in ahead["phases"].items())
+        lines["workAhead"] = (
+            f"{ahead['tasks']} done task{'' if ahead['tasks'] == 1 else 's'} ahead of "
+            f"{exit_['phase']}'s exit ({exit_['exitAuthority'] or 'no exit authority'}): {phases}"
+        )
+    return lines
+
+
+def _states(criteria) -> dict[str, int]:
+    return {state: sum(1 for c in criteria if c.state == state) for state in ("PASS", "FAIL", "NOT_RUN")}
+
+
+def exercised(project: Project, task: Task) -> list[str]:
+    """Evidence classes of this task's passing criteria that exercised the work."""
+    return sorted({
+        c.evidence_class for c in project.mandatory_criteria(task)
+        if c.state == "PASS" and c.evidence_class in EXERCISED_CLASSES
+    })
+
+
+def _phase_waits(project: Project) -> dict[str, str]:
+    """Each unfinished phase whose predecessor's exit is still open."""
+    waits: dict[str, str] = {}
+    for earlier, later in zip(project.phases, project.phases[1:]):
+        if earlier.status != "COMPLETE" and later.status != "COMPLETE":
+            waits[later.id] = earlier.id
+    return waits
+
+
+def _work_ahead(project: Project, waits: dict[str, str]) -> dict[str, object] | None:
+    """Execution finished in phases whose predecessor has not exited. Descriptive only."""
+    ahead = {
+        phase_id: sum(1 for t in project.execution_in(phase_id) if t.done)
+        for phase_id in waits
+    }
+    ahead = {k: v for k, v in ahead.items() if v}
+    if not ahead:
+        return None
+    oldest = next(p for p in project.phases if p.status != "COMPLETE")
+    return {
+        "oldestOpenExit": {"phase": oldest.id, "exitAuthority": oldest.exit_authority},
+        "phases": ahead,
+        "tasks": sum(ahead.values()),
+    }
 
 
 def unmet(project: Project, task: Task) -> list[str]:
@@ -257,13 +343,22 @@ def report(project: Project) -> Report:
 
     for task in project.tasks:
         if task.done and task.validation == "UNTESTED":
+            # UNTESTED records no review. Whether the work was exercised is a
+            # different fact, read from the criteria, and said separately.
+            classes = exercised(project, task)
             result.obstacles.append(
                 Obstacle(
                     type="VALIDATION_GAP",
                     subject=task.id,
                     blockers=[],
-                    detail=f"{task.id} is DONE but its validation strength is UNTESTED",
+                    detail=(
+                        f"{task.id} is DONE with {' and '.join(classes)} evidence recorded; "
+                        "no review recorded"
+                        if classes else
+                        f"{task.id} is DONE with no exercised evidence and no review recorded"
+                    ),
                     domain=task.domain,
+                    variant="REVIEW_MISSING" if classes else "EVIDENCE_MISSING",
                 )
             )
 
@@ -328,6 +423,8 @@ def report(project: Project) -> Report:
                     )
                 )
 
+    result.phase_waits = _phase_waits(project)
+    result.work_ahead = _work_ahead(project, result.phase_waits)
     result.critical_path = _critical_path(project)
     result.ready.sort()
     result.blocked.sort()

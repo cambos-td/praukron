@@ -10,7 +10,7 @@ HANDOFF.md. These files stay descriptive on purpose.
 
 from __future__ import annotations
 
-from .analytics import Report
+from .analytics import Report, describe
 from .layout import AUTHORITY_DIR
 from .model import Project
 
@@ -51,14 +51,13 @@ def state(project: Project, report: Report) -> str:
         f"- Execution tasks: {metrics['taskCompletion']['done']} of "
         f"{metrics['taskCompletion']['total']} done"
     )
-    lines.append(
-        f"- Acceptance: {metrics['acceptanceCompletion']['done']} of "
-        f"{metrics['acceptanceCompletion']['total']} criteria passing"
-    )
-    lines.append(
-        f"- Validation: {metrics['validationCoverage']['done']} of "
-        f"{metrics['validationCoverage']['total']} reviewed or verified"
-    )
+    words = describe(metrics, report)
+    lines.append(f"- Acceptance, {words['acceptanceStarted']}; {words['acceptanceLater']}")
+    lines.append(f"- Reviewed: {words['reviewed']}")
+    if words["unreviewed"]:
+        lines.append(f"- Not reviewed: {words['unreviewed']}")
+    if words["workAhead"]:
+        lines.append(f"- Work ahead of phase closure: {words['workAhead']}")
     lines.append(
         f"- Gates: {metrics['gateReadiness']['done']} of "
         f"{metrics['gateReadiness']['total']} green"

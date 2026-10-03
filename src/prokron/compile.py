@@ -107,6 +107,8 @@ def as_json(project: Project) -> dict[str, object]:
                 "exitAuthority": phase.exit_authority,
                 "status": phase.status,
                 "progress": report.phase_progress[phase.id].as_json(),
+                # The earlier phase whose exit this one waits on, if open.
+                "waitsOn": report.phase_waits.get(phase.id),
                 "source": phase.source.as_json(),
             }
             for phase in project.phases
@@ -257,6 +259,7 @@ def as_json(project: Project) -> dict[str, object]:
             "nextGate": report.next_gate,
             "externalBlockers": report.external_blockers,
             "failures": report.execution_failures,
+            "workAhead": report.work_ahead,
         },
         "operations": {
             "metrics": report.operations_metrics(),

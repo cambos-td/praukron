@@ -175,32 +175,23 @@ def cmd_status(root: Path, args: argparse.Namespace) -> int:
         f"  tasks        {metrics['taskCompletion']['done']} / "
         f"{metrics['taskCompletion']['total']} execution"
     )
-    print(
-        f"  acceptance   {metrics['acceptanceCompletion']['done']} / "
-        f"{metrics['acceptanceCompletion']['total']} criteria passing"
-    )
-    print(
-        f"  validation   {metrics['validationCoverage']['done']} / "
-        f"{metrics['validationCoverage']['total']} reviewed or verified"
-    )
-    # Done and checked are different claims; keep the gap on the same screen.
-    unreviewed = sum(
-        1
-        for task in project.tasks
-        if task.done and task.validation not in ("AI_REVIEWED", "HUMAN_VERIFIED")
-    )
-    if unreviewed:
-        print(
-            f"               {unreviewed} done task{'' if unreviewed == 1 else 's'} "
-            "not reviewed or verified"
-        )
+    words = analytics.describe(metrics, report)
+    print(f"  acceptance   {words['acceptanceStarted']}")
+    print(f"               {words['acceptanceLater']}")
+    print(f"  reviewed     {words['reviewed']}")
+    if words["unreviewed"]:
+        print(f"               {words['unreviewed']}")
     print(
         f"  gates        {metrics['gateReadiness']['done']} / "
         f"{metrics['gateReadiness']['total']} green"
     )
     for phase in project.phases:
         progress = report.phase_progress[phase.id]
-        print(f"  {phase.id:<12} {progress} · {phase.status}")
+        waits = report.phase_waits.get(phase.id)
+        print(f"  {phase.id:<12} {progress} · {phase.status}"
+              + (f" · exit waits on {waits}" if waits else ""))
+    if words["workAhead"]:
+        print(f"  ahead        {words['workAhead']}")
     independent = metrics["phaseIndependent"]
     if independent:
         print(f"  {'no phase':<12} {independent} task{'' if independent == 1 else 's'}")

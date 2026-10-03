@@ -13,6 +13,8 @@ from typing import Literal
 STATUSES = ("TODO", "WIP", "DONE", "BLOCKED")
 VALIDATIONS = ("UNTESTED", "SYNTHETIC", "AI_REVIEWED", "HUMAN_VERIFIED")
 EVIDENCE_CLASSES = ("TEST", "MUTATION", "INSPECTION", "RUNTIME", "MANUAL")
+# Evidence produced by running or exercising the work, not by reading it.
+EXERCISED_CLASSES = ("TEST", "MUTATION", "RUNTIME", "MANUAL")
 CRITERION_STATES = ("PASS", "FAIL", "NOT_RUN")
 PHASE_STATUSES = ("PLANNED", "ACTIVE", "EXIT_PENDING", "COMPLETE")
 GATE_STATUSES = ("GREEN", "RED")
@@ -387,6 +389,9 @@ class Obstacle:
     blockers: list[str]
     detail: str
     domain: str = "execution"
+    # A finer reading of the type where one exists, e.g. a validation gap
+    # with evidence recorded but no review, versus one with no evidence.
+    variant: str | None = None
 
     def as_json(self) -> dict[str, object]:
         return {
@@ -395,6 +400,7 @@ class Obstacle:
             "blockers": self.blockers,
             "detail": self.detail,
             "domain": self.domain,
+            "variant": self.variant,
         }
 
 

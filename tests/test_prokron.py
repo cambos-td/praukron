@@ -2138,9 +2138,9 @@ class TestCli(FixtureCase):
         """`60 / 60 done` reads as finished; how much of it anyone checked is a
         separate number, and it has to be on the same screen (ADR-041)."""
         out = self.run_cli("status")[1]
-        self.assertIn("1 done task not reviewed or verified", out)
+        self.assertIn("1 done without review, 1 of them with exercised evidence", out)
         self.rewrite("TASKS.md", "- Validation: SYNTHETIC", "- Validation: AI_REVIEWED")
-        self.assertNotIn("not reviewed or verified", self.run_cli("status")[1])
+        self.assertNotIn("done without review", self.run_cli("status")[1])
 
 
 class TestNewerCompiledViews(FixtureCase):

@@ -826,12 +826,14 @@ document.addEventListener('click', event => {
 """
 
 
-def _metric_card(label: str, progress: dict) -> str:
+def _metric_card(label: str, progress: dict, note: str = "") -> str:
     percent = round(progress["fraction"] * 100)
     return (
         f'<div class="card"><div class="k">{label}</div>'
         f'<div class="v">{progress["done"]} <span class="note">/ {progress["total"]}</span></div>'
-        f'<div class="bar"><i style="width:{percent}%"></i></div></div>'
+        f'<div class="bar"><i style="width:{percent}%"></i></div>'
+        + (f'<div class="more">{esc(note)}</div>' if note else "")
+        + "</div>"
     )
 
 
@@ -872,7 +874,7 @@ _OBSTACLE_GROUPS = (
     ("ACCEPTANCE_BLOCKER", "Acceptance blockers"),
     ("GATE_BLOCKER", "Gate blockers"),
     ("PHASE_BLOCKER", "Phase blockers"),
-    ("VALIDATION_GAP", "Validation gaps"),
+    ("VALIDATION_GAP", "Review gaps"),
     ("SCHEDULE_BLOCKER", "Schedule blockers"),
 )
 
@@ -1077,11 +1079,23 @@ def render(project: Project, report: Report, compiled: dict) -> str:
         "</div>"
     )
 
+    started = metrics["acceptanceBreakdown"]["started"]
+    later = metrics["acceptanceBreakdown"]["notStarted"]
     cards = "".join(
         [
             _metric_card("Task completion", metrics["taskCompletion"]),
-            _metric_card("Acceptance", metrics["acceptanceCompletion"]),
-            _metric_card("Validation coverage", metrics["validationCoverage"]),
+            _metric_card(
+                "Criteria passed, started work",
+                {"done": started["PASS"], "total": sum(started.values()),
+                 "fraction": started["PASS"] / sum(started.values()) if sum(started.values()) else 0.0},
+                f"{started['FAIL']} fail · {started['NOT_RUN']} not run · "
+                f"{sum(later.values())} more in work not started",
+            ),
+            _metric_card(
+                "Reviewed or verified tasks", metrics["validationCoverage"],
+                f"of all execution tasks · SYNTHETIC {metrics['validationBreakdown'].get('SYNTHETIC', 0)}"
+                f" · UNTESTED {metrics['validationBreakdown'].get('UNTESTED', 0)}",
+            ),
             _metric_card("Gate readiness", metrics["gateReadiness"]),
             _metric_card("Critical path", metrics["criticalPathCompletion"]),
         ]
@@ -1096,6 +1110,7 @@ def render(project: Project, report: Report, compiled: dict) -> str:
         f'<div class="outcome">{esc(phase["outcome"])}</div>'
         f'<div class="mono">{phase["progress"]["done"]} / {phase["progress"]["total"]} execution tasks'
         + (f' · exit authority {esc(phase["exitAuthority"])}' if phase["exitAuthority"] else "")
+        + (f' · exit waits on {esc(phase["waitsOn"])}' if phase.get("waitsOn") else "")
         + f'</div><div class="bar"><i style="width:{round(phase["progress"]["fraction"] * 100)}%"></i></div>'
         "</article>"
         for phase in compiled["phases"]
@@ -1177,6 +1192,15 @@ def render(project: Project, report: Report, compiled: dict) -> str:
     groups = []
     for kind, label in _OBSTACLE_GROUPS:
         items = [o for o in execution_obstacles if o["type"] == kind]
+        if kind == "VALIDATION_GAP":
+            # Evidence recorded but nobody reviewed it is not the same as
+            # nothing ever exercised; never let one read as the other.
+            for variant, name in (("REVIEW_MISSING", "Evidence recorded, review missing"),
+                                  ("EVIDENCE_MISSING", "No exercised evidence, no review")):
+                chosen = [o for o in items if o.get("variant") == variant]
+                if chosen:
+                    groups.append((name, chosen, variant == "EVIDENCE_MISSING", ""))
+            continue
         if items:
             groups.append((label, items, True, ""))
     dependency = [o for o in execution_obstacles if o["type"] == "DEPENDENCY_BLOCKER"]
@@ -1460,9 +1484,21 @@ def render(project: Project, report: Report, compiled: dict) -> str:
         )
 
     exec_in_flight = in_flight
+    ahead = execution.get("workAhead")
+    work_ahead = (
+        '<div class="box" id="work-ahead"><strong>Work ahead of phase closure</strong> '
+        f'<span class="note">{ahead["tasks"]} done execution task{"" if ahead["tasks"] == 1 else "s"} '
+        f'in phases whose predecessor has not exited. Oldest open exit: '
+        f'{esc(ahead["oldestOpenExit"]["phase"])}'
+        + (f' ({ref(ahead["oldestOpenExit"]["exitAuthority"])})' if ahead["oldestOpenExit"]["exitAuthority"] else "")
+        + ". " + " · ".join(f"{esc(k)} {v}" for k, v in ahead["phases"].items())
+        + ". A description, not a judgment: the phase rules are unchanged.</span></div>"
+        if ahead else ""
+    )
     overview = panel("overview", f"""
   {focus}
   {external_overview}
+  {work_ahead}
   <h2>Execution progress</h2>
   <div class="grid">{cards}</div>
   <h2>Phases</h2>
@@ -1535,7 +1571,7 @@ def render(project: Project, report: Report, compiled: dict) -> str:
   <h2>Validation</h2>
   <div class="tablewrap"><table><thead><tr><th>Strength</th><th>Tasks</th><th>Share</th><th></th></tr></thead>
   <tbody>{validation_rows}</tbody></table></div>
-  <p class="note">Execution tasks only. Validation strength is separate from completion: a task can be DONE and still UNTESTED.</p>
+  <p class="note">Execution tasks only. Validation strength records review, not testing: UNTESTED means no review was recorded, even when criteria hold TEST or RUNTIME evidence. Completion is separate.</p>
   <h2>Technical debt</h2>
   {debt_section}
 """)
