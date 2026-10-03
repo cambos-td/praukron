@@ -152,6 +152,13 @@ class TestServe(ServeCase):
         self.assertEqual(status, 400)
         self.assertIn("needs --by", result["error"])
 
+    def test_an_answered_card_offers_no_second_answer(self) -> None:
+        """Found in the exit run: reopening an answered card confirmed it again."""
+        page = serve.page(self.dir)
+        answered = page.split('id="assumption-A-1"', 1)[1].split("</details>", 1)[0]
+        self.assertNotIn('class="aform"', answered)
+        self.assertIn("Answered; waiting for the agent to reconcile it.", answered)
+
     def test_a_permission_card_says_what_was_assumed(self) -> None:
         """AC-T-SERVE-01-05."""
         card = serve.page(self.dir).split('id="assumption-A-2"', 1)[1].split("</details>", 1)[0]

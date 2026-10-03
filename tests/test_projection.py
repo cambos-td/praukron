@@ -156,6 +156,10 @@ class TestProjection(ProjectionCase):
         self.assertEqual(breakdown["notStarted"], {"PASS": 0, "FAIL": 0, "NOT_RUN": 3})
         self.assertIn("started work: 6 pass · 1 fail · 1 not run", self.status())
         self.assertIn("not started: 3 criteria not reached yet", self.status())
+        held = analytics.describe({**self.metrics, "acceptanceBreakdown": {
+            "started": {"PASS": 0, "FAIL": 0, "NOT_RUN": 0},
+            "notStarted": {"PASS": 3, "FAIL": 0, "NOT_RUN": 0}}}, self.report)
+        self.assertEqual(held["acceptanceLater"], "not started: 3 criteria, 3 already pass")
         html = self.html()
         self.assertIn("Criteria passed, started work", html)
         self.assertIn("1 fail · 1 not run · 3 more in work not started", html)

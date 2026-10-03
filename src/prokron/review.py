@@ -210,7 +210,11 @@ def panel_body(compiled: dict, ref, interactive: bool = False) -> str:
             for r in responses.get(a["id"], [])
         ) or '<p class="note">No response yet.</p>'
         action = (
-            form(a) if interactive and a["status"] in ("OPEN", "CONFIRMED") else
+            # A card already answered waits for the agent; offering the form
+            # again recorded the same answer twice in the first owner run.
+            form(a) if interactive and a["status"] in ("OPEN", "CONFIRMED") and a["id"] not in waiting else
+            '<p class="respond-hint">Answered; waiting for the agent to reconcile it.</p>'
+            if interactive and a["id"] in waiting else
             '<p class="respond-hint">To respond, run <code>prokron dashboard --serve</code> '
             "and open the link it prints. This page is read-only.</p>"
         )

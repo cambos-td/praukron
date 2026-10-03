@@ -177,7 +177,12 @@ def describe(metrics: dict[str, object], report: "Report") -> dict[str, str]:
         "acceptanceStarted": (
             f"started work: {started['PASS']} pass · {started['FAIL']} fail · {started['NOT_RUN']} not run"
         ),
-        "acceptanceLater": f"not started: {sum(later.values())} criteria not reached yet",
+        # A task not yet WIP or DONE (TODO or BLOCKED) can still hold passing
+        # criteria; say so rather than call them "not reached" (exit run).
+        "acceptanceLater": (
+            f"not started: {sum(later.values())} criteria"
+            + (f", {later['PASS']} already pass" if later["PASS"] else " not reached yet")
+        ),
         "reviewed": (
             f"{coverage['done']} / {coverage['total']} execution tasks AI_REVIEWED or HUMAN_VERIFIED"
             f" · SYNTHETIC {counts.get('SYNTHETIC', 0)} · UNTESTED {counts.get('UNTESTED', 0)}"

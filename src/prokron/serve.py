@@ -54,7 +54,14 @@ def make_server(root: Path, port: int = 0) -> tuple[HTTPServer, str, str]:
 
         def do_GET(self) -> None:  # noqa: N802 - stdlib name
             if urlparse(self.path).path != "/" or not self._token_ok():
-                self._send(403, json.dumps({"ok": False, "error": "missing or wrong token"}))
+                # A person who typed the address without its token should be
+                # told what to open, not handed a JSON error.
+                self._send(403, (
+                    "<!doctype html><meta charset=utf-8><title>Prokron: link needed</title>"
+                    "<body style='font:16px system-ui;margin:3em'><h1>Open the full link</h1>"
+                    "<p>This review page needs the link printed by <code>prokron dashboard --serve</code>, "
+                    "including its <code>?token=…</code> part. The token keeps other pages on this "
+                    "machine from writing your answers.</p></body>"), "text/html")
                 return
             self._send(200, page(root), "text/html")
 
