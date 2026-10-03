@@ -268,7 +268,7 @@ install_guidance "$source_dir/.agents/skills/prokron/SKILL.md" \
 # never runs a stale compiler against a current chronicle.
 mkdir -p "$target/$runtime/prokron"
 for module in __init__ layout model parse domain validate analytics views index compile migrate \
-  mermaid dashboard retrieve codegraph cli; do
+  mermaid dashboard retrieve codegraph respond cli; do
   cp "$source_dir/src/prokron/$module.py" "$target/$runtime/prokron/$module.py"
 done
 cp "$source_dir/VERSION" "$target/$runtime/VERSION"

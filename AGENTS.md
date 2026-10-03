@@ -59,8 +59,10 @@ Run `validate` after editing authority. Before finishing, refresh everything in
 `.prokron/compiled/`: `compile` does not redraw the graphs or the dashboard, so
 run `compile && graph && dashboard`; a stale dashboard shows people a state the
 chronicle no longer holds. The tool
-never edits a record in `.prokron/chronicle/`; the only file it writes there is
-the generated `INDEX.md`.
+never edits a record in `.prokron/chronicle/`. It writes the generated
+`INDEX.md` there, and `prokron respond` appends the owner's responses to
+`RESPONSES.md`, validated and atomic; nothing else in the chronicle is
+written by the tool.
 
 Recognize these workflows:
 

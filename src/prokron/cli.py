@@ -277,6 +277,29 @@ def cmd_context(root: Path, args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_respond(root: Path, args: argparse.Namespace) -> int:
+    """Append the owner's response to RESPONSES.md, validated and atomic (ADR-055)."""
+    from . import respond
+
+    if args.batch:
+        try:
+            entries = json.loads(Path(args.batch).read_text())
+            items = [respond.Item(e["target"], e["action"], e["text"]) for e in entries]
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            return _fail(f"--batch must be a JSON list of target, action, text: {error}")
+    else:
+        if not args.target or not args.action:
+            return _fail("give a target and an action, or --batch FILE")
+        text = Path(args.text_file).read_text() if args.text_file else sys.stdin.read()
+        items = [respond.Item(args.target, args.action, text)]
+    try:
+        ids = respond.append(root, items, args.by or "", via=args.via, date=args.date)
+    except respond.RespondError as error:
+        return _fail(str(error))
+    print(f"Recorded {', '.join(ids)} in RESPONSES.md; compiled views refreshed.")
+    return 0
+
+
 def cmd_retrieve(root: Path, args: argparse.Namespace) -> int:
     project = _load(root)
     pack = retrieve.retrieve(project, analytics.report(project), root, " ".join(args.query))
@@ -551,6 +574,19 @@ def build_parser() -> argparse.ArgumentParser:
     )
     graph_tool.add_argument("--json", action="store_true")
     graph_tool.set_defaults(handler=cmd_codegraph)
+
+    answer = subparsers.add_parser(
+        "respond", help="append the owner's response to RESPONSES.md (the only write into the chronicle)"
+    )
+    answer.add_argument("target", nargs="?", help="an assumption (A-…) or a task (T-…)")
+    answer.add_argument("action", nargs="?", type=str.upper,
+                        choices=("CONFIRM", "REVISE", "REJECT", "GUIDE"))
+    answer.add_argument("--by", help="who is responding, as it should be recorded")
+    answer.add_argument("--text-file", help="read the response text from a file instead of stdin")
+    answer.add_argument("--batch", help="a JSON list of {target, action, text}, written all or nothing")
+    answer.add_argument("--via", default="cli", help="how it arrived: cli, dashboard, or relayed by …")
+    answer.add_argument("--date", help="YYYY-MM-DD; defaults to today")
+    answer.set_defaults(handler=cmd_respond)
 
     packet = subparsers.add_parser(
         "context", help="emit an agent context packet: orientation, or one task's"

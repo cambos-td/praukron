@@ -17,9 +17,12 @@ people and agents. Session handoff is one use of this shared understanding.
 
 Prokron consists of authored Markdown records, agent instructions, reusable
 command prompts, and a deterministic compiler over those records. The compiler
-reads `.prokron/chronicle/` and writes only `.prokron/compiled/`; it uses the
-Python standard library and needs no network or model provider. See ADR-013,
-ADR-016, ADR-017, ADR-024, and `docs/PRODUCT-THESIS.md`.
+reads `.prokron/chronicle/` and writes only `.prokron/compiled/` and the
+generated `INDEX.md`; it uses the Python standard library and needs no network
+or model provider. The one command that writes a record is `prokron respond`,
+and it only appends the owner's words to `RESPONSES.md`, validated first and
+undone if it introduces an error (ADR-055). See ADR-013, ADR-016, ADR-017,
+ADR-024, and `docs/PRODUCT-THESIS.md`.
 
 Phase specifications are internal working documents and are not published
 (ADR-026). Decisions taken against them cite them by name; the record of what

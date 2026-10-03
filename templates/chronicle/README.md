@@ -12,7 +12,8 @@ review, advice, and continuity between people as well as agents.
 
 ```text
 .prokron/chronicle/   authored by people and agents; the only source of truth
-                      (except INDEX.md, which Prokron generates)
+                      (except INDEX.md, which Prokron generates, and
+                      RESPONSES.md, which `prokron respond` appends to)
 .prokron/compiled/    compiled by Prokron; safe to delete and regenerate
 ```
 
