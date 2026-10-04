@@ -1,6 +1,15 @@
-# Prokron product thesis
+# Praukron product thesis
 
-This document explains why Prokron is shaped the way it is. The
+> We introduce Praukron, a repository-native project-state protocol and
+> reference implementation for asynchronous human–AI software development.
+
+This is the most precise definition of Praukron. It is a protocol in a narrow
+sense: a set of Markdown records and rules for keeping them, which any person
+or agent can follow without the tool. The `praukron` compiler is one reference
+implementation of that protocol. It is not a framework that code runs inside,
+and it is not a project-management service.
+
+This document explains why Praukron is shaped the way it is. The
 [README](../README.md) shows what it does; the [specification](SPEC.md) defines
 the records and the working lifecycle. This is the reasoning between them.
 
@@ -82,7 +91,7 @@ it, the handoff. A structured packet.
           Humans                    Agents
 ```
 
-**Implemented.** `prokron dashboard` writes the first. `prokron context <task>`
+**Implemented.** `praukron dashboard` writes the first. `praukron context <task>`
 writes the second. Both are computed from the same compiled project, by the same
 deterministic code, with no model in the loop.
 
@@ -94,7 +103,7 @@ real source of truth.
 ## Where governance comes in, and how little of it there is
 
 The word is worth avoiding until the mechanism is visible, because most of what
-it suggests is not here. Prokron has no roles, no approvals, no workflow engine,
+it suggests is not here. Praukron has no roles, no approvals, no workflow engine,
 no permissions.
 
 What it does have, once the records exist, is a small set of properties that
@@ -111,16 +120,16 @@ That is the whole of it. It is lightweight on purpose: a heavier process would
 be abandoned, and an abandoned record is worse than none, because people still
 trust it.
 
-## What Prokron is not
+## What Praukron is not
 
 **Thesis, and a boundary the implementation respects.**
 
-> Prokron owns project understanding, not project execution.
+> Praukron owns project understanding, not project execution.
 
 It is not an issue tracker for AI, not an engineering manager, not an autonomous
 project manager, not an agent framework, not a model router, not an IDE. It
 schedules nothing, assigns nothing, and runs nothing. Agents and people execute;
-Prokron keeps the record that lets them know where they are.
+Praukron keeps the record that lets them know where they are.
 
 A useful test: if a feature would decide *what happens next on its own*, it does
 not belong here. If it helps a participant understand what is already true, it
@@ -134,9 +143,9 @@ might.
 
 **Implemented.** There are exactly two kinds of file.
 
-`.prokron/chronicle/` is authored — by people, by agents, by hand. It is the only
-source of truth. `.prokron/compiled/` is generated and disposable: delete the
-whole directory, run `prokron compile`, and every file comes back byte for byte.
+`.praukron/chronicle/` is authored — by people, by agents, by hand. It is the only
+source of truth. `.praukron/compiled/` is generated and disposable: delete the
+whole directory, run `praukron compile`, and every file comes back byte for byte.
 
 The separation is the point. A generated view can never answer a question that an
 authored document answers, so a stale summary cannot outrank the record it was
@@ -206,7 +215,7 @@ newcomer actually needs.
 
 **Implemented.** Two competent reviewers will disagree. The goal is not to
 prevent that; it is to make the disagreement resolvable without seniority
-deciding it. Prokron ships an explicit order:
+deciding it. Praukron ships an explicit order:
 
 ```text
 1. Product and domain authority
@@ -260,7 +269,7 @@ A **new project** starts from a product specification: the agent and the
 developer resolve ambiguity, then write the first phases, tasks, dependencies and
 contracts before implementation begins.
 
-An **existing project** starts empty, deliberately. Prokron does not scan the
+An **existing project** starts empty, deliberately. Praukron does not scan the
 repository and infer past tasks, decisions or intent, because an inferred history
 is indistinguishable from a recorded one once it is written down, and it would be
 trusted. The chronicle records from now on. Historical reconstruction happens
@@ -270,13 +279,13 @@ only if a developer explicitly asks for it.
 idea with no repository yet, or a long-running codebase whose documentation is
 scattered, stale and contradictory — is specified in an internal working
 document. The principle it follows is that the project should not have to
-reorganize itself before Prokron can read it, and that nothing extracted from
+reorganize itself before Praukron can read it, and that nothing extracted from
 messy evidence becomes canonical without human confirmation. None of it ships
 today.
 
 ## What this repository proves about itself
 
-**Implemented.** Prokron tracks its own development in its own chronicle, which
+**Implemented.** Praukron tracks its own development in its own chronicle, which
 is the only claim here that can be checked without installing anything. Every
 phase on record is closed and every gate is green, and the evidence behind each
 one is in the chronicle rather than in this sentence.
@@ -286,7 +295,7 @@ multi-session work was measured rather than assumed: the continuity pilot ran in
 full against v0.4.1 with three participants across two disposable projects, and
 all seven criteria pass. Two things it did not establish are recorded as not
 established. No host exposed a real limit warning to observe, so checkpointing
-against an actual quota boundary remains untested — Prokron cannot read a
+against an actual quota boundary remains untested — Praukron cannot read a
 counter it is not shown. And the human reading passed on the owner's
 attestation, without a point-by-point comparison against an agent's account.
 
@@ -294,6 +303,6 @@ attestation, without a point-by-point comparison against an agent's account.
 
 ## Related documents
 
-- [README](../README.md) — what Prokron does, and how to install it
+- [README](../README.md) — what Praukron does, and how to install it
 - [Specification](SPEC.md) — records, lifecycle, invariants, scope, continuity pilot
 - [Chronicle guide](../templates/chronicle/README.md) — the read order an agent follows

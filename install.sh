@@ -6,14 +6,14 @@ target=.
 target_set=0
 link=1
 ref=
-allow_downgrade=${PROKRON_ALLOW_DOWNGRADE:-0}
+allow_downgrade=${PRAUKRON_ALLOW_DOWNGRADE:-${PROKRON_ALLOW_DOWNGRADE:-0}}
 upgraded=
 staged=
 
-# Everything Prokron installs lives in one directory (ADR-024). The only paths
+# Everything Praukron installs lives in one directory (ADR-024). The only paths
 # written outside it are the ones an agent host reads by fixed address, and the
 # launcher described below, which goes on the reader's machine (ADR-027).
-home=.prokron
+home=.praukron
 chronicle="$home/chronicle"
 commands="$home/commands"
 runtime="$home/runtime"
@@ -88,29 +88,29 @@ cleanup() {
 trap cleanup EXIT HUP INT TERM
 
 if [ -n "$source_dir" ] && [ -n "$ref" ]; then
-  echo "--ref applies only when the installer downloads Prokron; this one runs from $source_dir" >&2
+  echo "--ref applies only when the installer downloads Praukron; this one runs from $source_dir" >&2
   exit 2
 fi
 
 # The default is the latest published release, not `main`, so two people who
 # install on different days get the same runtime (ADR-040).
 use_gh=0
-if command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
+if [ -z "$source_dir" ] && command -v gh >/dev/null 2>&1 && gh auth status >/dev/null 2>&1; then
   use_gh=1
 fi
 downloaded=0
 if [ -z "$source_dir" ]; then
-  temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/prokron.XXXXXX")
+  temp_dir=$(mktemp -d "${TMPDIR:-/tmp}/praukron.XXXXXX")
   command -v tar >/dev/null 2>&1 || { echo "tar is required" >&2; exit 1; }
   if [ "$use_gh" -eq 0 ]; then
     command -v curl >/dev/null 2>&1 || { echo "curl is required" >&2; exit 1; }
   fi
   if [ -z "$ref" ]; then
     if [ "$use_gh" -eq 1 ]; then
-      ref=$(gh api repos/qomero/prokron/releases/latest --jq .tag_name 2>/dev/null || true)
+      ref=$(gh api repos/qomero/praukron/releases/latest --jq .tag_name 2>/dev/null || true)
     else
       latest=$(curl -fsSLI -o /dev/null -w '%{url_effective}' \
-        https://github.com/qomero/prokron/releases/latest 2>/dev/null || true)
+        https://github.com/qomero/praukron/releases/latest 2>/dev/null || true)
       case $latest in */releases/tag/*) ref=${latest##*/} ;; esac
     fi
     if [ -z "$ref" ]; then
@@ -119,20 +119,24 @@ if [ -z "$source_dir" ]; then
     fi
   fi
   if [ "$use_gh" -eq 1 ]; then
-    gh api "repos/qomero/prokron/tarball/$ref" > "$temp_dir/prokron.tar.gz"
+    gh api "repos/qomero/praukron/tarball/$ref" > "$temp_dir/praukron.tar.gz"
   else
-    curl -fsSL "https://github.com/qomero/prokron/archive/$ref.tar.gz" \
-      -o "$temp_dir/prokron.tar.gz"
+    curl -fsSL "https://github.com/qomero/praukron/archive/$ref.tar.gz" \
+      -o "$temp_dir/praukron.tar.gz"
   fi
   mkdir "$temp_dir/source"
-  tar -xzf "$temp_dir/prokron.tar.gz" -C "$temp_dir/source"
+  tar -xzf "$temp_dir/praukron.tar.gz" -C "$temp_dir/source"
   set -- "$temp_dir/source"/*
   source_dir=$1
   downloaded=1
 fi
 
 if [ ! -f "$source_dir/templates/chronicle/README.md" ]; then
-  echo "Downloaded Prokron source is incomplete" >&2
+  echo "Downloaded Praukron source is incomplete" >&2
+  exit 1
+fi
+if [ ! -f "$source_dir/src/praukron/cli.py" ]; then
+  echo "This revision predates the Praukron rename. Choose a Praukron revision with --ref; historical Prokron releases keep their original installer." >&2
   exit 1
 fi
 
@@ -145,9 +149,27 @@ version_older() {
   [ "$lowest" = "$1" ]
 }
 incoming=$(cat "$source_dir/VERSION" 2>/dev/null || echo 0)
-present=$(cat "$target/.prokron/runtime/VERSION" 2>/dev/null || true)
+# Existing Prokron installations have one authority directory. Move it only
+# after preflight, and retain an alias so edited guidance and old launchers work.
+rename_install=0
+if [ -L "$target/.prokron" ]; then
+  if [ "$(readlink "$target/.prokron")" != .praukron ] || [ ! -d "$target/.praukron" ] || [ -L "$target/.praukron" ]; then
+    echo "Cannot upgrade linked Prokron installation: $target/.prokron" >&2
+    exit 1
+  fi
+elif [ -d "$target/.prokron/chronicle" ] || [ -d "$target/.prokron/runtime" ]; then
+  if [ -e "$target/.praukron" ] || [ -L "$target/.praukron" ]; then
+    echo "Cannot upgrade: both .prokron and .praukron exist; reconcile them first." >&2
+    exit 1
+  fi
+  rename_install=1
+fi
+present=$(cat "$target/.praukron/runtime/VERSION" 2>/dev/null || true)
+if [ "$rename_install" -eq 1 ]; then
+  present=$(cat "$target/.prokron/runtime/VERSION" 2>/dev/null || true)
+fi
 if [ -n "$present" ] && version_older "$incoming" "$present" && [ "$allow_downgrade" != 1 ]; then
-  echo "Refusing to install prokron $incoming over the newer $present already in $target." >&2
+  echo "Refusing to install praukron $incoming over the newer $present already in $target." >&2
   echo "Pass --allow-downgrade if that is intended." >&2
   exit 1
 fi
@@ -155,11 +177,11 @@ fi
 # A downloaded release installs itself, exactly as it shipped: its own
 # installer knows its own files (ADR-040).
 if [ "$downloaded" -eq 1 ]; then
-  printf 'Installing prokron %s (%s)\n' "$incoming" "$ref"
+  printf 'Installing praukron %s (%s)\n' "$incoming" "$ref"
   set -- "$mode" "$target"
   [ "$link" -eq 1 ] || set -- "$@" --no-link
   status=0
-  PROKRON_ALLOW_DOWNGRADE=$allow_downgrade sh "$source_dir/install.sh" "$@" || status=$?
+  PRAUKRON_ALLOW_DOWNGRADE=$allow_downgrade sh "$source_dir/install.sh" "$@" || status=$?
   exit "$status"
 fi
 
@@ -175,7 +197,7 @@ copy_new() {
   fi
 }
 
-# Guidance is what Prokron tells people and agents to do. The runtime is
+# Guidance is what Praukron tells people and agents to do. The runtime is
 # replaced on every install, so guidance must keep up with it — without ever
 # overwriting what a person edited (ADR-040). The previous install recorded a
 # checksum of each guidance file it wrote; a file that still matches was never
@@ -183,8 +205,12 @@ copy_new() {
 # staged beside it for review.
 manifest="$target/$runtime/GUIDANCE"
 previous=
-if [ -f "$manifest" ] && [ ! -L "$manifest" ]; then
-  previous=$(cat "$manifest")
+previous_manifest=$manifest
+if [ "$rename_install" -eq 1 ]; then
+  previous_manifest="$target/.prokron/runtime/GUIDANCE"
+fi
+if [ -f "$previous_manifest" ] && [ ! -L "$previous_manifest" ]; then
+  previous=$(cat "$previous_manifest")
 fi
 recorded=
 
@@ -193,7 +219,8 @@ sum_of() {
 }
 
 previous_sum() {
-  printf '%s\n' "$previous" | awk -v key="$1" '$2 == key { print $1; exit }'
+  old_key=$(printf '%s' "$1" | sed 's/praukron/prokron/g')
+  printf '%s\n' "$previous" | awk -v key="$1" -v old="$old_key" '$2 == key || $2 == old { print $1; exit }'
 }
 
 record() {
@@ -237,77 +264,115 @@ install_guidance() {
 }
 
 for path in "$home" "$chronicle" "$chronicle/ADR" "$commands" "$runtime" \
-  "$runtime/prokron" .claude .claude/commands .opencode .opencode/commands \
-  .agents .agents/skills .agents/skills/prokron; do
+  "$runtime/praukron" .claude .claude/commands .opencode .opencode/commands \
+  .agents .agents/skills .agents/skills/praukron; do
   if [ -L "$target/$path" ] || { [ -e "$target/$path" ] && [ ! -d "$target/$path" ]; }; then
     echo "Cannot install into linked or non-directory path: $target/$path" >&2
     exit 1
   fi
 done
+if [ -L "$target/.prokron" ] && { [ -L "$target/$home/prokron" ] || { [ -e "$target/$home/prokron" ] && [ ! -f "$target/$home/prokron" ]; }; }; then
+  echo "Cannot upgrade non-regular compatibility entry point." >&2
+  exit 1
+fi
+if [ "$rename_install" -eq 1 ]; then
+  # Check the source before moving it, including dangling links, and refuse
+  # anything the ordinary installation preflight would refuse.
+  for path in .prokron .prokron/chronicle .prokron/chronicle/ADR \
+    .prokron/commands .prokron/runtime .prokron/runtime/praukron; do
+    if [ -L "$target/$path" ] || { [ -e "$target/$path" ] && [ ! -d "$target/$path" ]; }; then
+      echo "Cannot upgrade linked or non-directory path: $target/$path" >&2
+      exit 1
+    fi
+  done
+  for file in THESIS PHASES MODULES TASKS ACCEPTANCE INTENT HANDOFF JOURNAL TRACE TECH_DEBT ASSUMPTIONS RESPONSES README; do
+    path="$target/.prokron/chronicle/$file.md"
+    if [ -L "$path" ] || { [ -e "$path" ] && [ ! -f "$path" ]; }; then
+      echo "Cannot upgrade non-regular record: $path" >&2
+      exit 1
+    fi
+  done
+  if [ -L "$target/.prokron/prokron" ] || { [ -e "$target/.prokron/prokron" ] && [ ! -f "$target/.prokron/prokron" ]; }; then
+    echo "Cannot upgrade non-regular entry point." >&2
+    exit 1
+  fi
+  mv "$target/.prokron" "$target/.praukron"
+  ln -s .praukron "$target/.prokron"
+  printf 'Moved the Prokron installation to .praukron; historical paths remain available through an alias.\n'
+fi
 had_chronicle=0
 [ ! -d "$target/$chronicle" ] || had_chronicle=1
 # Records are the project's own: a template is only ever a starting point.
-for file in THESIS PHASES MODULES TASKS ACCEPTANCE INTENT HANDOFF JOURNAL TRACE TECH_DEBT; do
+for file in THESIS PHASES MODULES TASKS ACCEPTANCE INTENT HANDOFF JOURNAL TRACE TECH_DEBT ASSUMPTIONS RESPONSES; do
   copy_new "$source_dir/templates/chronicle/$file.md" "$target/$chronicle/$file.md"
 done
 copy_new "$source_dir/templates/chronicle/ADR/README.md" "$target/$chronicle/ADR/README.md"
 install_guidance "$source_dir/templates/chronicle/README.md" "$chronicle/README.md"
 
 for command in init work decide checkpoint resume baseline; do
-  install_guidance "$source_dir/.prokron/commands/prokron-$command.md" \
-    "$commands/prokron-$command.md"
-  install_guidance "$source_dir/.claude/commands/prokron-$command.md" \
-    ".claude/commands/prokron-$command.md"
-  install_guidance "$source_dir/.opencode/commands/prokron-$command.md" \
-    ".opencode/commands/prokron-$command.md"
+  install_guidance "$source_dir/.praukron/commands/praukron-$command.md" \
+    "$commands/praukron-$command.md"
+  install_guidance "$source_dir/.claude/commands/praukron-$command.md" \
+    ".claude/commands/praukron-$command.md"
+  install_guidance "$source_dir/.opencode/commands/praukron-$command.md" \
+    ".opencode/commands/praukron-$command.md"
 done
-install_guidance "$source_dir/.agents/skills/prokron/SKILL.md" \
-  ".agents/skills/prokron/SKILL.md"
+install_guidance "$source_dir/.agents/skills/praukron/SKILL.md" \
+  ".agents/skills/praukron/SKILL.md"
 
 # The runtime is code, not a record: replace it on every install so a repository
 # never runs a stale compiler against a current chronicle.
-mkdir -p "$target/$runtime/prokron"
+mkdir -p "$target/$runtime/praukron"
 for module in __init__ layout model parse domain validate analytics views index compile migrate \
-  mermaid dashboard retrieve codegraph cli; do
-  cp "$source_dir/src/prokron/$module.py" "$target/$runtime/prokron/$module.py"
+  mermaid review dashboard retrieve codegraph respond serve cli; do
+  cp "$source_dir/src/praukron/$module.py" "$target/$runtime/praukron/$module.py"
 done
 cp "$source_dir/VERSION" "$target/$runtime/VERSION"
-cp "$source_dir/.prokron/prokron" "$target/$home/prokron"
-chmod +x "$target/$home/prokron"
+cp "$source_dir/.praukron/praukron" "$target/$home/praukron"
+chmod +x "$target/$home/praukron"
+if [ -L "$target/.prokron" ]; then
+  # Compatibility entry: old launchers run the current runtime on the same
+  # records, rather than continuing to run an obsolete copy.
+  cat > "$target/$home/prokron" <<'COMPAT'
+#!/bin/sh
+exec "$(dirname "$0")/praukron" "$@"
+COMPAT
+  chmod +x "$target/$home/prokron"
+fi
 
 # A path is not a command. The launcher below goes on the reader's PATH so the
-# command is `prokron`; it holds no logic of its own, walking up to the nearest
+# command is `praukron`; it holds no logic of its own, walking up to the nearest
 # project and running that project's runtime, so two repositories on different
 # releases each keep their own (ADR-027).
 #
 # It creates no directory, edits no shell configuration, and never replaces a
-# `prokron` it did not write.
+# `praukron` it did not write.
 linked=
 if [ "$link" -eq 1 ]; then
   for dir in "${HOME:-}/.local/bin" "${HOME:-}/bin" /usr/local/bin; do
     [ -n "$dir" ] && [ -d "$dir" ] && [ -w "$dir" ] || continue
     case ":${PATH:-}:" in *":$dir:"*) ;; *) continue ;; esac
-    if [ -e "$dir/prokron" ] && ! grep -q 'prokron-launcher' "$dir/prokron" 2>/dev/null; then
+    if [ -e "$dir/praukron" ] && ! grep -q 'praukron-launcher' "$dir/praukron" 2>/dev/null; then
       continue
     fi
-    cat > "$dir/prokron" <<'LAUNCHER'
+    cat > "$dir/praukron" <<'LAUNCHER'
 #!/bin/sh
-# prokron-launcher: run the nearest project's own copy of Prokron.
+# praukron-launcher: run the nearest project's own copy of Praukron.
 set -eu
 dir=$(pwd -P)
 while :; do
-  if [ -x "$dir/.prokron/prokron" ]; then
-    exec "$dir/.prokron/prokron" "$@"
+  if [ -x "$dir/.praukron/praukron" ]; then
+    exec "$dir/.praukron/praukron" "$@"
   fi
   [ "$dir" != "/" ] || break
   dir=$(dirname "$dir")
 done
-echo "No .prokron/ in $(pwd) or any parent directory." >&2
-echo "Install Prokron in this project with:" >&2
-echo "  curl -fsSL https://raw.githubusercontent.com/qomero/prokron/main/install.sh | sh" >&2
+echo "No .praukron/ in $(pwd) or any parent directory." >&2
+echo "Install Praukron in this project with:" >&2
+echo "  curl -fsSL https://raw.githubusercontent.com/qomero/praukron/main/install.sh | sh" >&2
 exit 2
 LAUNCHER
-    chmod +x "$dir/prokron"
+    chmod +x "$dir/praukron"
     linked=$dir
     break
   done
@@ -322,9 +387,9 @@ refreshed=
 if [ -d "$target/$home/compiled" ] && grep -q '^## T-' "$target/$chronicle/TASKS.md" 2>/dev/null; then
   if (
     cd "$target" \
-      && "$home/prokron" compile >/dev/null 2>&1 \
-      && "$home/prokron" graph >/dev/null 2>&1 \
-      && "$home/prokron" dashboard >/dev/null 2>&1
+      && "$home/praukron" compile >/dev/null 2>&1 \
+      && "$home/praukron" graph >/dev/null 2>&1 \
+      && "$home/praukron" dashboard >/dev/null 2>&1
   ); then
     refreshed=done
   else
@@ -332,13 +397,23 @@ if [ -d "$target/$home/compiled" ] && grep -q '^## T-' "$target/$chronicle/TASKS
   fi
 fi
 
-# A Prokron block shares a file with the project's own rules: AGENTS.md for
+# A Praukron block shares a file with the project's own rules: AGENTS.md for
 # every agent, CLAUDE.md for Claude Code. Only the text between the markers is
 # ever compared or replaced; everything around it is left exactly as it was.
 install_block() {
   # $1 file (relative), $2 source block, $3 start marker, $4 end marker,
   # $5 manifest key, $6 label for the output.
   file="$target/$1"
+  # Retain the legacy marker and manifest key when upgrading an existing
+  # block. Unmodified blocks can be replaced; edited blocks stay byte-exact.
+  start_marker=$3
+  end_marker=$4
+  old_start=$(printf '%s' "$3" | sed 's/praukron/prokron/g')
+  if [ -f "$file" ] && ! grep -Fq "$3" "$file" && grep -Fq "$old_start" "$file"; then
+    start_marker=$old_start
+    end_marker=$(printf '%s' "$4" | sed 's/praukron/prokron/g')
+  fi
+  set -- "$1" "$2" "$start_marker" "$end_marker" "$5" "$6"
   if [ ! -f "$file" ]; then
     cp "$2" "$file"
     record "$(sum_of "$2")" "$5"
@@ -363,9 +438,9 @@ install_block() {
           index($0, s) && !done { while ((getline line < src) > 0) print line; skip = 1; done = 1; next }
           skip { if (index($0, e)) skip = 0; next }
           { print }
-        ' "$file" > "$file.prokron-new"
-        cat "$file.prokron-new" > "$file"
-        rm -f "$file.prokron-new"
+        ' "$file" > "$file.praukron-new"
+        cat "$file.praukron-new" > "$file"
+        rm -f "$file.praukron-new"
         record "$(sum_of "$2")" "$5"
         upgraded="$upgraded  $6
 "
@@ -377,8 +452,8 @@ install_block() {
     rm -f "$block"
   fi
 }
-install_block AGENTS.md "$source_dir/AGENTS.md" '<!-- project-prokron:start -->' \
-  '<!-- project-prokron:end -->' 'AGENTS.md#prokron' 'AGENTS.md (Prokron block)'
+install_block AGENTS.md "$source_dir/AGENTS.md" '<!-- project-praukron:start -->' \
+  '<!-- project-praukron:end -->' 'AGENTS.md#praukron' 'AGENTS.md (Praukron block)'
 
 # Claude Code reads CLAUDE.md, which imports AGENTS.md and carries the
 # Claude-specific entry order (ADR-047).
@@ -389,14 +464,14 @@ elif ! grep -Fxq '@AGENTS.md' "$target/CLAUDE.md"; then
 fi
 if [ -f "$source_dir/templates/claude/CLAUDE.md" ]; then
   install_block CLAUDE.md "$source_dir/templates/claude/CLAUDE.md" \
-    '<!-- project-prokron-claude:start -->' '<!-- project-prokron-claude:end -->' \
-    'CLAUDE.md#prokron' 'CLAUDE.md (Prokron block)'
+    '<!-- project-praukron-claude:start -->' '<!-- project-praukron-claude:end -->' \
+    'CLAUDE.md#praukron' 'CLAUDE.md (Praukron block)'
 fi
 printf '%s' "$recorded" > "$manifest"
 
 # In a Git repository, append-only records merge by union, so two branches
 # that each add a journal entry or an ADR do not conflict, and compiled output
-# is marked generated (ADR-041). The block is Prokron's; the rest of the file
+# is marked generated (ADR-041). The block is Praukron's; the rest of the file
 # is the project's and is left as it was.
 if [ -e "$target/.git" ]; then
   attributes="$target/.gitattributes"
@@ -406,58 +481,58 @@ if [ -e "$target/.git" ]; then
   fi
   block_file="$target/$runtime/gitattributes.tmp"
   cat > "$block_file" <<'ATTRIBUTES'
-# prokron:start — maintained by the Prokron installer (ADR-041)
-.prokron/chronicle/JOURNAL.md merge=union
-.prokron/chronicle/ADR/README.md merge=union
-.prokron/compiled/** linguist-generated=true
-.prokron/chronicle/INDEX.md linguist-generated=true
-# prokron:end
+# praukron:start — maintained by the Praukron installer (ADR-041)
+.praukron/chronicle/JOURNAL.md merge=union
+.praukron/chronicle/ADR/README.md merge=union
+.praukron/compiled/** linguist-generated=true
+.praukron/chronicle/INDEX.md linguist-generated=true
+# praukron:end
 ATTRIBUTES
   if [ ! -f "$attributes" ]; then
     cp "$block_file" "$attributes"
-  elif ! grep -Fq '# prokron:start' "$attributes"; then
+  elif ! grep -Fq '# praukron:start' "$attributes" && ! grep -Fq '# prokron:start' "$attributes"; then
     [ ! -s "$attributes" ] || [ -z "$(tail -c 1 "$attributes")" ] || printf '\n' >> "$attributes"
     cat "$block_file" >> "$attributes"
   else
     awk -v src="$block_file" '
-      /^# prokron:start/ && !done { while ((getline line < src) > 0) print line; skip = 1; done = 1; next }
-      skip { if (/^# prokron:end/) skip = 0; next }
+      /^# (praukron|prokron):start/ && !done { while ((getline line < src) > 0) print line; skip = 1; done = 1; next }
+      skip { if (/^# (praukron|prokron):end/) skip = 0; next }
       { print }
-    ' "$attributes" > "$attributes.prokron-new"
-    cat "$attributes.prokron-new" > "$attributes"
-    rm -f "$attributes.prokron-new"
+    ' "$attributes" > "$attributes.praukron-new"
+    cat "$attributes.praukron-new" > "$attributes"
+    rm -f "$attributes.praukron-new"
   fi
   rm -f "$block_file"
 fi
 
 
-printf 'Prokron installed in %s\n' "$target"
+printf 'Praukron installed in %s\n' "$target"
 if [ -n "$linked" ]; then
-  printf 'The command is `prokron`, linked in %s\n\n' "$linked"
+  printf 'The command is `praukron`, linked in %s\n\n' "$linked"
 elif [ "$link" -eq 1 ]; then
-  printf 'Run it as `%s/prokron`, or put it on your PATH:\n' "$home"
-  printf '  alias prokron="%s/prokron"\n\n' "$home"
+  printf 'Run it as `%s/praukron`, or put it on your PATH:\n' "$home"
+  printf '  alias praukron="%s/praukron"\n\n' "$home"
 else
-  printf 'Run it as `%s/prokron`.\n\n' "$home"
+  printf 'Run it as `%s/praukron`.\n\n' "$home"
 fi
 if grep -q '^## T-' "$target/prokron/TASKS.md" 2>/dev/null; then
   printf 'A v0.2 chronicle was found at prokron/ and the new layout reads %s/.\n' "$chronicle"
   printf 'Your records are intact. Move them with:\n'
-  printf '  %s/prokron migrate           # shows what it would do\n' "$home"
-  printf '  %s/prokron migrate --apply   # performs it\n\n' "$home"
-elif grep -q '^## T-' "$target/$home/TASKS.md" 2>/dev/null; then
-  printf 'A v0.1 chronicle was found in %s/ and the new layout cannot read it.\n' "$home"
+  printf '  %s/praukron migrate           # shows what it would do\n' "$home"
+  printf '  %s/praukron migrate --apply   # performs it\n\n' "$home"
+elif grep -q '^## T-' "$target/.prokron/TASKS.md" 2>/dev/null; then
+  printf 'A v0.1 chronicle was found in .prokron/ and the new layout cannot read it.\n'
   printf 'Your records are intact. Move them with:\n'
-  printf '  %s/prokron migrate           # shows what it would do\n' "$home"
-  printf '  %s/prokron migrate --apply   # performs it, archiving the originals\n\n' "$home"
+  printf '  %s/praukron migrate           # shows what it would do\n' "$home"
+  printf '  %s/praukron migrate --apply   # performs it, archiving the originals\n\n' "$home"
 fi
 if [ "$refreshed" = done ]; then
   printf 'Generated views were refreshed by the new runtime.\n\n'
 elif [ "$refreshed" = failed ]; then
   printf 'Generated views could not be refreshed and are still the previous\n'
-  printf 'version'"'"'s. Your records are untouched. Fix what `%s/prokron validate`\n' "$home"
+  printf 'version'"'"'s. Your records are untouched. Fix what `%s/praukron validate`\n' "$home"
   printf 'reports, then run:\n'
-  printf '  %s/prokron compile && %s/prokron graph && %s/prokron dashboard\n\n' "$home" "$home" "$home"
+  printf '  %s/praukron compile && %s/praukron graph && %s/praukron dashboard\n\n' "$home" "$home" "$home"
 fi
 if [ -n "$upgraded" ]; then
   printf 'Guidance upgraded, unedited since the last install:\n%s\n' "$upgraded"
@@ -468,14 +543,14 @@ if [ -n "$staged" ]; then
 fi
 if [ "$had_chronicle" -eq 1 ]; then
   printf 'Existing chronicle preserved. Resume in your agent chat:\n'
-  printf '  Codex:       $prokron resume\n'
-  printf '  Claude Code / OpenCode: /prokron-resume\n'
-  printf '  Other:       Read AGENTS.md, then follow %s/prokron-resume.md.\n' "$commands"
+  printf '  Codex:       $praukron resume\n'
+  printf '  Claude Code / OpenCode: /praukron-resume\n'
+  printf '  Other:       Read AGENTS.md, then follow %s/praukron-resume.md.\n' "$commands"
   exit 0
 fi
 printf 'Start in your agent chat:\n'
-printf '  Codex:       $prokron init %s\n' "$mode"
-printf '  Claude Code: /prokron-init %s\n' "$mode"
-printf '  OpenCode:    /prokron-init %s\n' "$mode"
-printf '  Other:       Read AGENTS.md, then follow %s/prokron-init.md in %s mode.\n' \
+printf '  Codex:       $praukron init %s\n' "$mode"
+printf '  Claude Code: /praukron-init %s\n' "$mode"
+printf '  OpenCode:    /praukron-init %s\n' "$mode"
+printf '  Other:       Read AGENTS.md, then follow %s/praukron-init.md in %s mode.\n' \
   "$commands" "$mode"

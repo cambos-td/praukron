@@ -4,6 +4,6 @@ __pycache__/
 next_plan/
 # This repository's own chronicle is kept by its maintainers and not
 # published (ADR-042). The chronicle template ships in templates/chronicle/.
-.prokron/chronicle/
-.prokron/compiled/
-.prokron/upgrade/
+.praukron/chronicle/
+.praukron/compiled/
+.praukron/upgrade/

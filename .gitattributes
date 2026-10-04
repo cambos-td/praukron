@@ -1,6 +1,6 @@
-# prokron:start — maintained by the Prokron installer (ADR-041)
-.prokron/chronicle/JOURNAL.md merge=union
-.prokron/chronicle/ADR/README.md merge=union
-.prokron/compiled/** linguist-generated=true
-.prokron/chronicle/INDEX.md linguist-generated=true
-# prokron:end
+# praukron:start — maintained by the Praukron installer (ADR-041)
+.praukron/chronicle/JOURNAL.md merge=union
+.praukron/chronicle/ADR/README.md merge=union
+.praukron/compiled/** linguist-generated=true
+.praukron/chronicle/INDEX.md linguist-generated=true
+# praukron:end

@@ -1,15 +1,18 @@
 <p align="center">
-  <img src="docs/assets/prokron.svg" alt="Prokron means Project Chronicle: a common language for people and AI. Shared purpose, historical decisions, current state, and future work connect everyone to the same project story." width="1200">
+  <img src="docs/assets/praukron.svg" alt="Praukron means Project Chronicle: a common language for people and AI. Shared purpose, historical decisions, current state, and future work connect everyone to the same project story." width="1200">
 </p>
 
-# Prokron
+# Praukron
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.22897871.svg)](https://doi.org/10.5281/zenodo.22897871)
 
-**Prokron keeps people and AI agents working from the same project state.**
+**Praukron keeps people and AI agents working from the same project state.**
 
-Project management that a person and an AI can both read. Prokron is short for
-Project Chronicle.
+A repository-native project-state protocol and reference implementation for
+asynchronous human–AI software development. Praukron is short for Project
+Chronicle.
+
+Previously published as **Prokron**. Existing DOI identifiers and Git history are preserved.
 
 [The problem](#the-problem) · [Get started](#get-started) ·
 [Guide](docs/GUIDE.md) · [Specification](docs/SPEC.md) ·
@@ -34,7 +37,7 @@ March. The useful question is not *what should this agent remember* but **what
 should the project remember** — and the answer has to be readable by everyone
 who touches it.
 
-Prokron's answer: keep that in the repository, as Markdown, and compile it.
+Praukron's answer: keep that in the repository, as Markdown, and compile it.
 
 ## One state, two readers
 
@@ -48,13 +51,13 @@ A person opens a page:
   <img src="docs/assets/dashboard-state.png" alt="The dashboard's Overview tab for an illustrative expense-tracking project: a focus strip naming current phase P2, the task in flight, the main blocker and the next gate with one gate green and one red; a line showing an operations task holding up a product task; execution progress metrics; and three phase cards with the current phase highlighted." width="900">
 </p>
 
-<p align="center"><em><code>prokron dashboard</code> on Ledgerly, an illustrative project — the expense tool from the story below.<br>
-Every figure is computed from the Markdown files in <code>.prokron/chronicle/</code>. No model, no service, no network.</em></p>
+<p align="center"><em><code>praukron dashboard</code> on Ledgerly, an illustrative project — the expense tool from the story below.<br>
+Every figure is computed from the Markdown files in <code>.praukron/chronicle/</code>. No model, no service, no network.</em></p>
 
 An agent asks for a packet, and gets the same state as structured text:
 
 ```console
-$ prokron context T-PILOT-01
+$ praukron context T-PILOT-01
 {
   "role": "builder",
   "packetFor": "T-PILOT-01",
@@ -70,7 +73,7 @@ $ prokron context T-PILOT-01
     { "id": "AC-T-PILOT-01-01", "class": "RUNTIME", "state": "PASS",
       "text": "Given a disposable project and a small specification, When ..." }
   ],
-  "decisions": [ { "id": "ADR-008", "title": "Make Prokron an agent working convention" } ],
+  "decisions": [ { "id": "ADR-008", "title": "Make Praukron an agent working convention" } ],
   "handoff": "..."
 }
 ```
@@ -78,8 +81,8 @@ $ prokron context T-PILOT-01
 Same project. Different interface. A project meeting and an agent session do not
 need two versions of reality, and neither side has to translate for the other.
 
-That is also the whole of it: **Prokron owns project understanding, not project
-execution.** Claude, Codex, a person in an editor — they do the work. Prokron
+That is also the whole of it: **Praukron owns project understanding, not project
+execution.** Claude, Codex, a person in an editor — they do the work. Praukron
 keeps the record that lets each of them know where they are.
 
 ### A project story a newcomer can follow
@@ -164,19 +167,19 @@ One criterion passes, one fails, one has not run — and the test runs and the f
 
 That last part matters more than it looks. When two people — or two agents —
 disagree about whether something is finished, the contract makes the
-disagreement **decidable** instead of an argument. Prokron ships an explicit
+disagreement **decidable** instead of an argument. Praukron ships an explicit
 arbitration order: product authority, then the contract, then invariants, then
 accepted decisions, then reproducible evidence, then existing convention, and
 only last, reviewer preference.
 
-Taken together, that is as much governance as Prokron has, and it is deliberately
+Taken together, that is as much governance as Praukron has, and it is deliberately
 small: decisions are explicit and dated, dependencies are visible, completion has
 conditions agreed in advance, conflicting evidence can be surfaced and settled by
 a stated order — and no single participant owns the project's context.
 
 ### What it refuses to make up
 
-A project tool that invents numbers is worse than no tool. Prokron reports a
+A project tool that invents numbers is worse than no tool. Praukron reports a
 duration only when someone recorded one, a date only when someone set one, and
 `UNKNOWN` the rest of the time. Dependency ordering and calendar scheduling are
 deliberately kept in separate views so one never quietly becomes the other.
@@ -199,25 +202,25 @@ Product work is grouped by phase; operations sits apart in dashed nodes, joined 
 From the root of your project:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/qomero/prokron/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/qomero/praukron/main/install.sh | sh
 ```
 
 Read the script before you pipe it to a shell, as you should with any installer
 delivered this way.
 
-The installer adds one directory, `.prokron/`, holding the chronicle, the
+The installer adds one directory, `.praukron/`, holding the chronicle, the
 compiled views, the tool itself and the portable workflows. Outside it, it
 writes only what an agent host reads by fixed address: `AGENTS.md`,
 `CLAUDE.md`, and the command files for Codex, Claude Code, and OpenCode. It
 preserves existing records and custom instructions, restores missing files, and
 prints what to run next.
 
-It also puts a small `prokron` launcher in a directory already on your `PATH`,
-so the command is `prokron` from anywhere in the project. The launcher runs
+It also puts a small `praukron` launcher in a directory already on your `PATH`,
+so the command is `praukron` from anywhere in the project. The launcher runs
 each project's own copy, so two repositories on different releases stay
 independent. It creates no directories, changes no shell configuration, and
-never replaces a `prokron` it did not write — if there is nowhere to put it,
-the installer says so and `.prokron/prokron` works exactly the same. Pass
+never replaces a `praukron` it did not write — if there is nowhere to put it,
+the installer says so and `.praukron/praukron` works exactly the same. Pass
 `--no-link` to skip it.
 
 <details>
@@ -227,10 +230,10 @@ Installing defaults to `existing`, which records from now on. A **new project**
 starts from your product specification instead:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/qomero/prokron/main/install.sh | sh -s -- new
+curl -fsSL https://raw.githubusercontent.com/qomero/praukron/main/install.sh | sh -s -- new
 ```
 
-From a downloaded or cloned Prokron checkout, installation works offline:
+From a downloaded or cloned Praukron checkout, installation works offline:
 
 ```sh
 sh ./install.sh /path/to/your/project
@@ -239,7 +242,7 @@ sh ./install.sh /path/to/your/project
 With an authenticated [GitHub CLI](https://cli.github.com/):
 
 ```sh
-gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomero/prokron/contents/install.sh?ref=main' | sh
+gh api -H 'Accept: application/vnd.github.raw+json' 'repos/qomero/praukron/contents/install.sh?ref=main' | sh
 ```
 
 Every form takes an optional `new` or `existing`, an optional target
@@ -253,14 +256,14 @@ an older runtime over a newer one.
 
 | Agent host | Existing project | New project |
 |---|---|---|
-| Codex | `$prokron init existing` | `$prokron init new` |
-| Claude Code / OpenCode | `/prokron-init existing` | `/prokron-init new` |
-| Other capable coding agents | Read `AGENTS.md`, then follow `.prokron/commands/prokron-init.md` in existing mode. | Same instruction, in new mode. |
+| Codex | `$praukron init existing` | `$praukron init new` |
+| Claude Code / OpenCode | `/praukron-init existing` | `/praukron-init new` |
+| Other capable coding agents | Read `AGENTS.md`, then follow `.praukron/commands/praukron-init.md` in existing mode. | Same instruction, in new mode. |
 
 **New project:** the agent works from your product specification with you to
 derive the initial phases, tasks, dependencies, and contracts.
 **Existing project:** the chronicle starts empty and records from now on.
-Earlier history is reconstructed only if you explicitly ask; Prokron does not
+Earlier history is reconstructed only if you explicitly ask; Praukron does not
 invent it. A populated chronicle is preserved if you initialize again.
 
 ### 3. Work normally
@@ -272,8 +275,8 @@ made, and keep progress current — without a slash command for every update.
 Then check it yourself:
 
 ```sh
-prokron status
-prokron dashboard && open .prokron/compiled/dashboard.html
+praukron status
+praukron dashboard && open .praukron/compiled/dashboard.html
 ```
 
 A session then looks like this, and the loop is the point:
@@ -281,7 +284,7 @@ A session then looks like this, and the loop is the point:
 ```text
 you ask for work  →  agent claims a task, writes its contract, implements
                   →  agent records evidence, decisions, and where it stopped
-                  →  prokron compile          state is recomputed
+                  →  praukron compile          state is recomputed
                   →  you read the dashboard   the next agent reads the packet
 ```
 
@@ -295,8 +298,8 @@ model provider, no network. Output for a given set of documents is identical
 every time, which is what lets two agents and a person agree on the numbers.
 
 ```console
-$ prokron status
-Prokron — phase none
+$ praukron status
+Praukron — phase none
   tasks        53 / 53
   acceptance   146 / 146 criteria passing
   validation   20 / 53 reviewed or verified
@@ -314,7 +317,7 @@ Prokron — phase none
 That is this repository at v0.4.6, reporting its own unfinished work.
 
 ```console
-$ prokron explain T-PILOT-01
+$ praukron explain T-PILOT-01
 T-PILOT-01 — Run the continuity pilot
   phase P1 · DONE · HUMAN_VERIFIED
 
@@ -322,9 +325,9 @@ T-PILOT-01 — Run the continuity pilot
     ✓ T-READINESS-01
 
   Acceptance
-    ✓ AC-T-PILOT-01-01 [RUNTIME] Given a disposable project and a small specification, When Prokron is installed in `new` m
-    ✓ AC-T-PILOT-01-02 [RUNTIME] Given an ordinary work request carrying no Prokron command, When an agent acts on it, Then
-    ✓ AC-T-PILOT-01-03 [RUNTIME] Given a material choice that is later changed, When the agent records it without `/prokron
+    ✓ AC-T-PILOT-01-01 [RUNTIME] Given a disposable project and a small specification, When Praukron is installed in `new` m
+    ✓ AC-T-PILOT-01-02 [RUNTIME] Given an ordinary work request carrying no Praukron command, When an agent acts on it, Then
+    ✓ AC-T-PILOT-01-03 [RUNTIME] Given a material choice that is later changed, When the agent records it without `/praukron
     ✓ AC-T-PILOT-01-04 [RUNTIME] Given work paused partway, When the chronicle is read, Then state, intent, and journal car
     ✓ AC-T-PILOT-01-05 [RUNTIME] Given a fresh agent session with no prior chat, When it is asked to resume, Then it states
     ✓ AC-T-PILOT-01-06 [RUNTIME] Given a populated chronicle, When initialization runs again, Then tasks, ADRs, and journal
@@ -336,18 +339,18 @@ T-PILOT-01 — Run the continuity pilot
 
 | Command | Answers |
 |---|---|
-| `prokron status` | Where the project stands, what is ready, what blocks it. |
-| `prokron explain <task>` | Why one task exists, its criteria, blockers, and evidence. |
-| `prokron context` | Orientation for a fresh agent: phase, work in flight, ready, blocked, the critical path, and where authority lives. |
-| `prokron context <task>` | The minimal packet an agent needs to start that task, with the exact records to read and any references that do not resolve. |
-| `prokron domains` | How each task's execution/operations domain was decided, and which need one. |
-| `prokron retrieve "<question or id>"` | Only the chronicle records a question needs, routed by `INDEX.md`, each with its source. |
-| `prokron codegraph status` | Optional: whether CodeGraph is available to add code structure after the records. |
-| `prokron validate` | Broken dependencies, dangling references, authority conflicts. |
-| `prokron compile` | Rebuilds `.prokron/compiled/` from the authored documents. |
-| `prokron graph` | The six Mermaid views of the same state. |
-| `prokron dashboard` | The local page above, in six tabs: overview, execution, graph, governance, decisions, all tasks. |
-| `prokron migrate` | Moves a chronicle written under an earlier layout into the current one. |
+| `praukron status` | Where the project stands, what is ready, what blocks it. |
+| `praukron explain <task>` | Why one task exists, its criteria, blockers, and evidence. |
+| `praukron context` | Orientation for a fresh agent: phase, work in flight, ready, blocked, the critical path, and where authority lives. |
+| `praukron context <task>` | The minimal packet an agent needs to start that task, with the exact records to read and any references that do not resolve. |
+| `praukron domains` | How each task's execution/operations domain was decided, and which need one. |
+| `praukron retrieve "<question or id>"` | Only the chronicle records a question needs, routed by `INDEX.md`, each with its source. |
+| `praukron codegraph status` | Optional: whether CodeGraph is available to add code structure after the records. |
+| `praukron validate` | Broken dependencies, dangling references, authority conflicts. |
+| `praukron compile` | Rebuilds `.praukron/compiled/` from the authored documents. |
+| `praukron graph` | The six Mermaid views of the same state. |
+| `praukron dashboard` | The local page above, in six tabs: overview, execution, graph, governance, decisions, all tasks. |
+| `praukron migrate` | Moves a chronicle written under an earlier layout into the current one. |
 
 ## How it works
 
@@ -355,7 +358,7 @@ T-PILOT-01 — Run the continuity pilot
 flowchart TD
     P["People: plan, decide, review"] <--> C["PROJECT CHRONICLE: authored Markdown"]
     A["AI agents: implement, record, report"] <--> C
-    C --> K["prokron compile"]
+    C --> K["praukron compile"]
     K --> S["Project state: phases, gates, ready work, blockers, critical path"]
     S --> D["Dashboard: the human projection"]
     S --> X["Context packet, project.json: the agent projection"]
@@ -378,19 +381,19 @@ source and a shared way of computing from it.
 
 ### What lives where
 
-Everything Prokron installs is inside one directory, and only one part of it is
+Everything Praukron installs is inside one directory, and only one part of it is
 authoritative.
 
 ```text
-.prokron/
+.praukron/
 ├── chronicle/   written by people and agents; the only source of truth
 ├── compiled/    generated; safe to delete and rebuild
 ├── commands/    the workflows an agent follows
 ├── runtime/     the tool's own code
-└── prokron      the command
+└── praukron      the command
 ```
 
-| File in `.prokron/chronicle/` | What it holds |
+| File in `.praukron/chronicle/` | What it holds |
 |---|---|
 | **`ACCEPTANCE.md`** | The bar: what must be demonstrated before work counts as done. |
 | **`ADR/`** | The reasoning: append-only decisions and their supersession chain. |
@@ -405,13 +408,13 @@ authoritative.
 | `TECH_DEBT.md` | The liabilities: known compromises, what they cost, their trigger, and what would retire them. |
 | `INDEX.md` | Generated, never edited: the map an agent reads first, pointing to the records that matter now. |
 
-`.prokron/compiled/` holds the generated views: a state snapshot, the task
+`.praukron/compiled/` holds the generated views: a state snapshot, the task
 graph, a `project.json` for other tools, Mermaid diagrams, and the dashboard.
-Delete that directory and `prokron compile` rebuilds it byte for byte. Nothing
+Delete that directory and `praukron compile` rebuilds it byte for byte. Nothing
 in it is authority, and nothing in it decides a question the authored files
 answer.
 
-Prokron is built with Prokron; the dashboard images above come from its own
+Praukron is built with Praukron; the dashboard images above use an illustrative Ledgerly
 chronicle. That chronicle is kept by the maintainers and not published, so a
 clone carries the tool and the [chronicle template](templates/chronicle/) but
 not the project's working records.
@@ -422,35 +425,35 @@ into why the model is shaped this way.
 
 ## What is verified, and what is not
 
-**Implemented and tested.** The compiler and its eleven commands, acceptance
+**Implemented and tested.** The compiler and its twelve commands, acceptance
 contracts with evidence, phases, gates, computed obstacles, the critical path,
-the dashboard, the execution/operations split, technical debt, the index and retrieval, optional CodeGraph, and the context packet. 215 unit tests plus an installer
+the dashboard, the execution/operations split, technical debt, the index and retrieval, optional CodeGraph, and the context packet, assumptions, owner responses and the served review page. 297 unit tests plus an installer
 regression suite, and deleting the compiled directory reproduces every generated
 file byte for byte:
 
 ```sh
-rm -rf .prokron/compiled && prokron compile && prokron graph
+rm -rf .praukron/compiled && praukron compile && praukron graph
 ```
 
 Two different coding agents have audited the same implementation against the
 same contract and reached the same verdicts, after a real disagreement that the
 arbitration order settled.
 
-**Not yet proven.** Prokron's rules ask an agent to checkpoint before a handoff,
+**Not yet proven.** Praukron's rules ask an agent to checkpoint before a handoff,
 compaction, session end, or any known or estimated context, token, time, rate,
-or quota limit. **Prokron cannot read hidden quota counters or guarantee a
+or quota limit. **Praukron cannot read hidden quota counters or guarantee a
 final write after an abrupt cutoff.** The
 [continuity pilot](docs/SPEC.md#handoff-pilot) has now been run in full against
-this release and all seven of its criteria pass
+the earlier Prokron continuity workflow and all seven of its criteria pass
 ([results](docs/pilot-2026-09-22.md)) — but no host exposed a real limit
 warning to observe, and nothing was simulated in its place. Checkpointing
 against an actual quota boundary is therefore still untested rather than
 passed. The human reading also passed on the owner's attestation, without a
 point-by-point comparison against an agent's account of the same chronicle.
 
-**Designed, not built.** Later phases are specified in internal working
-documents and are not part of this release. Nothing in this README describes
-them, and no command implements them yet.
+**Designed, not built.** GitHub-account-based owner identity and interactive
+verification remain planned. This release records owner guidance; it does not
+claim those identity checks are implemented.
 
 Run the checks yourself from a checkout:
 
@@ -465,26 +468,26 @@ Use these when you want to invoke a workflow explicitly.
 
 | Purpose | Claude Code / OpenCode | Codex |
 |---|---|---|
-| Initialize | `/prokron-init [new\|existing]` | `$prokron init [new\|existing]` |
-| Start or continue a task | `/prokron-work [task]` | `$prokron work [task]` |
-| Record or supersede a decision | `/prokron-decide [decision]` | `$prokron decide [decision]` |
-| Save a handoff | `/prokron-checkpoint` | `$prokron checkpoint` |
-| Recover current work | `/prokron-resume` | `$prokron resume` |
-| Record decisions an existing codebase already depends on | `/prokron-baseline` | `$prokron baseline` |
+| Initialize | `/praukron-init [new\|existing]` | `$praukron init [new\|existing]` |
+| Start or continue a task | `/praukron-work [task]` | `$praukron work [task]` |
+| Record or supersede a decision | `/praukron-decide [decision]` | `$praukron decide [decision]` |
+| Save a handoff | `/praukron-checkpoint` | `$praukron checkpoint` |
+| Recover current work | `/praukron-resume` | `$praukron resume` |
+| Record decisions an existing codebase already depends on | `/praukron-baseline` | `$praukron baseline` |
 
 All workflows also install as portable Markdown prompts in
-`.prokron/commands/`, which any capable agent can follow directly.
+`.praukron/commands/`, which any capable agent can follow directly.
 
 ### Use the model you prefer
 
-Prokron configures the **agent host** that reads files and does the work. GLM,
+Praukron configures the **agent host** that reads files and does the work. GLM,
 MiniMax, Mistral, Grok, and other models use the same chronicle through a
 compatible host; provider setup and model selection stay with that host.
 
 Codex receives a project skill. Claude Code and OpenCode receive project
 commands. Hosts that load [`AGENTS.md`](https://agents.md/) can follow the shared
 rules; for other capable agents, ask them explicitly to read it and follow the
-relevant file in `.prokron/commands/`.
+relevant file in `.praukron/commands/`.
 
 For OpenCode setup, see its [providers](https://opencode.ai/docs/providers),
 [instructions](https://opencode.ai/docs/rules/), and
@@ -492,21 +495,21 @@ For OpenCode setup, see its [providers](https://opencode.ai/docs/providers),
 
 ## Releases
 
-The current release is v1.0.0. `VERSION` holds it and [`CHANGELOG.md`](CHANGELOG.md) summarises
+The current release is v1.1.0. `VERSION` holds it and [`CHANGELOG.md`](CHANGELOG.md) summarises
 what changed. Every release from v0.4.6 is archived and citable:
 [`10.5281/zenodo.22897871`](https://doi.org/10.5281/zenodo.22897871) always resolves to the latest one, and
 [`CITATION.cff`](CITATION.cff) is what GitHub's *Cite this repository* reads.
 
 ### Upgrading from an earlier layout
 
-v0.2 moved authority out of `.prokron/` and into `prokron/` at the repository
-root. v0.3 moved everything Prokron owns back inside `.prokron/`, as
+Prokron v0.2 moved authority out of `.prokron/` and into `prokron/` at the repository
+root. Prokron v0.3 moved everything it owns back inside `.prokron/`, as
 `chronicle/` and `compiled/`. Either way your records are intact but in the old
 place, and the tool reports an empty project until you move them:
 
 ```sh
-prokron migrate           # shows what it would do
-prokron migrate --apply   # performs it
+praukron migrate           # shows what it would do
+praukron migrate --apply   # performs it
 ```
 
 Coming from v0.2 this is a relocation: every record moves byte for byte and
@@ -518,16 +521,28 @@ originals are archived untouched beside the new ones.
 
 Run the same install command again. It installs the latest release and
 never touches a chronicle record. For guidance — the workflows in
-`.prokron/commands/`, the Claude Code and OpenCode commands, the skill,
-`.prokron/chronicle/README.md`, and the Prokron block in `AGENTS.md`:
+`.praukron/commands/`, the Claude Code and OpenCode commands, the skill,
+`.praukron/chronicle/README.md`, and the Praukron block in `AGENTS.md`:
 
 - anything unedited since the last install is replaced with the new version;
 - anything you edited is kept exactly, and the new version is written beside
-  it under `.prokron/upgrade/`. Merge what you want, then delete that folder.
+  it under `.praukron/upgrade/`. Merge what you want, then delete that folder.
 
 The installer lists every file it replaced or staged. It will not install an
 older runtime over a newer one unless you pass `--allow-downgrade`, and
 `--ref <tag>` installs a specific release.
+
+The rename uses `praukron`, `.praukron/`, and the `praukron` Python package.
+Upgrade an existing Prokron installation with the Praukron installer: its
+chronicle moves unchanged, and a compatibility alias keeps old paths and
+launchers usable. Edited guidance stays intact; review the new guidance staged
+under `.praukron/upgrade/`. If both `.prokron/` and `.praukron/` already exist
+as separate installations, reconcile them before upgrading.
+
+Published tags from before v1.1.0 still contain Prokron. Use `--ref v1.1.0`
+for the first Praukron release; the new installer refuses a pre-rename source
+archive rather than reinstalling the old product name.
+
 
 ## Documentation
 
@@ -538,7 +553,7 @@ older runtime over a newer one unless you pass `--allow-downgrade`, and
 | [`docs/PRODUCT-THESIS.md`](docs/PRODUCT-THESIS.md) | Why shared project state, and how the model is built. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | How a change is accepted here: a task, a contract, evidence. |
 | [`SECURITY.md`](SECURITY.md) | What is in scope, and how to report privately. |
-| [`templates/chronicle/README.md`](templates/chronicle/README.md) | The read order and working rules an agent follows, installed as `.prokron/chronicle/README.md`. |
+| [`templates/chronicle/README.md`](templates/chronicle/README.md) | The read order and working rules an agent follows, installed as `.praukron/chronicle/README.md`. |
 | [`CHANGELOG.md`](CHANGELOG.md) | What changed in each release. |
 
 ## Help improve it
@@ -548,7 +563,7 @@ When reporting a gap, include the host and model, the request, what was
 recorded, and what a person or agent could not understand from it. Remove
 private project details before sharing.
 
-Changes should keep Prokron small and readable.
+Changes should keep Praukron small and readable.
 [`CONTRIBUTING.md`](CONTRIBUTING.md) describes how a change is accepted — a
 task, a frozen contract, and evidence, which is the same workflow the tool
 installs. The [specification](docs/SPEC.md) defines the working agreement and
@@ -556,7 +571,7 @@ scope.
 
 ## Qomero
 
-Built by Qomero, and used to run Qomero's own projects. Prokron is the record of
+Built by Qomero, and used to run Qomero's own projects. Praukron is the record of
 how we think a human and an AI should share one project.
 
 ## License

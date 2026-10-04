@@ -1,0 +1,20 @@
+#!/usr/bin/env python3
+"""Zero-install entry point. No packaging, no dependencies, no build step."""
+
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+# Installed, the runtime is copied in beside this script. In a source checkout
+# there is no copy, and `src/` one level up is the runtime being developed.
+for candidate in (HERE / "runtime", HERE.parent / "src"):
+    if (candidate / "praukron" / "cli.py").is_file():
+        sys.path.insert(0, str(candidate))
+        break
+else:  # pragma: no cover
+    sys.exit("praukron runtime not found next to this script")
+
+from praukron.cli import main  # noqa: E402
+
+if __name__ == "__main__":
+    raise SystemExit(main())

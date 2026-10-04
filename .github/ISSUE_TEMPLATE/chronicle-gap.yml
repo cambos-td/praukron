@@ -20,8 +20,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Prokron version
-      description: "`prokron --version`"
+      label: Praukron version
+      description: "`praukron --version`"
     validations:
       required: true
   - type: textarea
