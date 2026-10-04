@@ -6,7 +6,7 @@ Be decent. Argue about the work, not the person.
 
 ## What this project expects
 
-Prokron is built around the idea that disagreement should be decidable rather
+Praukron is built around the idea that disagreement should be decidable rather
 than won. That applies to people as much as to acceptance criteria:
 
 - **Bring evidence.** "This is wrong because it fails on X" is a contribution.
@@ -28,7 +28,7 @@ discussion.
 ## Reporting
 
 Report privately through GitHub:
-[**Report a vulnerability**](https://github.com/qomero/prokron/security/advisories/new),
+[**Report a vulnerability**](https://github.com/qomero/praukron/security/advisories/new),
 which is the private channel this repository has. Mark the report clearly as a
 conduct issue rather than a security one.
 

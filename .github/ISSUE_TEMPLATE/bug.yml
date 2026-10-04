@@ -5,8 +5,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Prokron version
-      description: "`prokron --version`"
+      label: Praukron version
+      description: "`praukron --version`"
     validations:
       required: true
   - type: input
@@ -36,6 +36,6 @@ body:
     attributes:
       label: Before posting
       options:
-        - label: "`prokron validate` reports the chronicle is consistent, or its output is included above"
+        - label: "`praukron validate` reports the chronicle is consistent, or its output is included above"
         - label: For an install or upgrade problem, the installer's full output is included above
         - label: The report contains no private project detail

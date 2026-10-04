@@ -14,8 +14,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prokron import analytics, cli, compile as compiler, layout  # noqa: E402
-from test_prokron import build_fixture  # noqa: E402
+from praukron import analytics, cli, compile as compiler, layout  # noqa: E402
+from test_praukron import build_fixture  # noqa: E402
 
 
 def _event(n: int, task: str, outcome: str = "success", retry_of: str | None = None) -> str:
@@ -25,7 +25,7 @@ def _event(n: int, task: str, outcome: str = "success", retry_of: str | None = N
 
 class SlimCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.dir = Path(tempfile.mkdtemp(prefix="prokron-slim-"))
+        self.dir = Path(tempfile.mkdtemp(prefix="praukron-slim-"))
         self.addCleanup(shutil.rmtree, self.dir, True)
         build_fixture(self.dir)
         self.authority = self.dir / layout.AUTHORITY_DIR
@@ -49,7 +49,7 @@ class TestContextSlim(SlimCase):
         self.assertEqual([e["id"] for e in events["unresolvedFailures"]], ["EV-008"])
         self.assertEqual(events["unresolvedFailures"][0]["outcome"], "failure")
         self.assertEqual(events["recent"], ["EV-006", "EV-007", "EV-008", "EV-009", "EV-010"])
-        self.assertEqual(events["more"], "prokron explain T-TWO")
+        self.assertEqual(events["more"], "praukron explain T-TWO")
         self.assertEqual(len(analytics.explain(self.project, "T-TWO")["events"]), 10)
 
     def test_handoff_is_a_pointer_with_its_body_only_when_it_names_the_task(self) -> None:
@@ -75,7 +75,7 @@ class TestContextSlim(SlimCase):
         blocked = analytics.context(self.project, None)["blocked"]
         self.assertEqual(blocked["count"], 13)
         self.assertEqual(len(blocked["first"]), 10)
-        self.assertEqual(blocked["more"], "prokron status")
+        self.assertEqual(blocked["more"], "praukron status")
         on_path = [t["id"] for t in blocked["first"] if t["id"] in report.critical_path]
         self.assertEqual([t["id"] for t in blocked["first"]][:len(on_path)], on_path)
 

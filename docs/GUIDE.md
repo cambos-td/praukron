@@ -1,7 +1,7 @@
-# Using Prokron
+# Using Praukron
 
 A working guide: the commands, the workflows your agent runs, and what to do
-on an ordinary day. The [README](../README.md) explains why Prokron exists and
+on an ordinary day. The [README](../README.md) explains why Praukron exists and
 [`SPEC.md`](SPEC.md) defines the records; this is how you drive it.
 
 Every command and flag below was run against a real installation before it was
@@ -14,12 +14,12 @@ written down.
 From the root of your project:
 
 ```sh
-curl -fsSL https://raw.githubusercontent.com/qomero/prokron/main/install.sh | sh
+curl -fsSL https://raw.githubusercontent.com/qomero/praukron/main/install.sh | sh
 ```
 
-That adds one directory, `.prokron/`, and the files an agent host reads by a
+That adds one directory, `.praukron/`, and the files an agent host reads by a
 fixed address — `AGENTS.md`, `CLAUDE.md`, and command files for Codex, Claude
-Code and OpenCode. It also puts a `prokron` launcher on your `PATH`, so the
+Code and OpenCode. It also puts a `praukron` launcher on your `PATH`, so the
 command works from any subdirectory.
 
 | You want | Run |
@@ -31,7 +31,7 @@ command works from any subdirectory.
 | A specific release, or unreleased `main` | `… \| sh -s -- --ref v0.5.0` · `--ref main` |
 | Go back to an older release on purpose | `… \| sh -s -- --ref v0.4.6 --allow-downgrade` |
 
-Without the launcher, every `prokron` below is `.prokron/prokron`. Both always
+Without the launcher, every `praukron` below is `.praukron/praukron`. Both always
 work; the launcher just saves typing.
 
 The one-line install fetches the latest published release, not `main`, and
@@ -40,9 +40,9 @@ gets the same thing.
 
 **Upgrading** is the same command. It replaces the tool, preserves every
 record, and refreshes the generated views. Guidance — workflows, host
-commands, the skill, the chronicle README, and the Prokron block in
+commands, the skill, the chronicle README, and the Praukron block in
 `AGENTS.md` — is replaced if you never edited it; if you did, yours is kept and
-the new version is written under `.prokron/upgrade/` for you to merge. The
+the new version is written under `.praukron/upgrade/` for you to merge. The
 output lists both. It refuses to install an older runtime over a newer one
 unless you pass `--allow-downgrade`.
 
@@ -57,7 +57,7 @@ to them.
 ### Asking where the project stands
 
 ```console
-$ prokron status
+$ praukron status
 App — phase P1
   tasks        1 / 2
   acceptance   1 / 2 criteria passing
@@ -79,7 +79,7 @@ believe, one of the two is wrong and it is worth finding out which.
 ### Asking about one task
 
 ```console
-$ prokron explain T-002
+$ praukron explain T-002
 T-002 — Next step
   phase P1 · TODO · UNTESTED
 
@@ -99,8 +99,8 @@ is a criterion with no evidence yet.
 ### Handing an agent exactly what it needs
 
 ```sh
-prokron context T-002                   # the builder's packet
-prokron context T-002 --role reviewer   # the reviewer's packet, with the finding taxonomy
+praukron context T-002                   # the builder's packet
+praukron context T-002 --role reviewer   # the reviewer's packet, with the finding taxonomy
 ```
 
 Emits the intent, phase, task, dependencies and whether they are met, the
@@ -111,8 +111,8 @@ carries the task's domain, any operations work it waits on, and the trace
 events that name it.
 
 ```sh
-prokron domains          # how every task's domain was decided
-prokron domains --json   # the same, for tools
+praukron domains          # how every task's domain was decided
+praukron domains --json   # the same, for tools
 ```
 
 Lists tasks as explicit or inferred execution, explicit operations, or
@@ -122,10 +122,10 @@ tool calls, mini-actions, failures, retries, or mutations. It reads only.
 ### Starting from the index
 
 ```sh
-cat .prokron/chronicle/INDEX.md                  # what matters now, and where it lives
-prokron retrieve "why is P1 blocked?"            # only the records that question needs
-prokron retrieve T-095                           # one task's neighbourhood
-prokron retrieve T-095 --code                    # then code structure, if CodeGraph is installed
+cat .praukron/chronicle/INDEX.md                  # what matters now, and where it lives
+praukron retrieve "why is P1 blocked?"            # only the records that question needs
+praukron retrieve T-095                           # one task's neighbourhood
+praukron retrieve T-095 --code                    # then code structure, if CodeGraph is installed
 ```
 
 `INDEX.md` is written by `compile`. Never edit it: edits are overwritten and
@@ -137,23 +137,23 @@ and how little of the chronicle that was.
 ### CodeGraph (optional)
 
 ```sh
-prokron codegraph status     # available? index healthy?
-prokron codegraph setup      # asks, then builds the project-local .codegraph/ index
-prokron codegraph setup --wire-agents   # also offers `codegraph install`, which edits user-level agent config
-prokron codegraph doctor
-prokron codegraph uninit
+praukron codegraph status     # available? index healthy?
+praukron codegraph setup      # asks, then builds the project-local .codegraph/ index
+praukron codegraph setup --wire-agents   # also offers `codegraph install`, which edits user-level agent config
+praukron codegraph doctor
+praukron codegraph uninit
 ```
 
-Prokron works the same without it. Give a task `- Files:` and `- Symbols:`
+Praukron works the same without it. Give a task `- Files:` and `- Symbols:`
 lines to seed its code query.
 
 ### Checking and rebuilding
 
 ```sh
-prokron validate     # authority is internally consistent
-prokron compile      # rebuild project.json and the Markdown views
-prokron graph        # rebuild the six Mermaid views
-prokron dashboard    # rebuild the browsable page
+praukron validate     # authority is internally consistent
+praukron compile      # rebuild project.json and the Markdown views
+praukron graph        # rebuild the six Mermaid views
+praukron dashboard    # rebuild the browsable page
 ```
 
 `validate` takes `--quiet` for errors only. `compile` takes `--force` to
@@ -165,10 +165,10 @@ compile despite validation errors, which you want roughly never. `compile`,
 do. After editing the chronicle by hand, the full refresh is:
 
 ```sh
-prokron compile && prokron graph && prokron dashboard
+praukron compile && praukron graph && praukron dashboard
 ```
 
-`prokron dashboard --open` opens it in a browser.
+`praukron dashboard --open` opens it in a browser.
 
 The page has seven tabs. **Overview** opens first: the current phase, what is
 in flight, the main blocker, and the next gate, then execution progress and
@@ -188,11 +188,11 @@ still writes nothing.
 ### Execution and operations
 
 Every task is either **execution** — work that advances the project itself —
-or **operations** — upgrading Prokron, CI, tooling, housekeeping, anything that
+or **operations** — upgrading Praukron, CI, tooling, housekeeping, anything that
 maintains the environment the project is built in. Declare it on the task:
 
 ```text
-## T-205: Upgrade Prokron and refresh the dashboard
+## T-205: Upgrade Praukron and refresh the dashboard
 - Status: TODO
 - Module: M-TOOLING
 - Domain: operations
@@ -207,7 +207,7 @@ task's external blocker, labelled as operations, with a link to its trace.
 
 Tasks whose module sits in a phase count as execution without saying so. A phase-independent task
 with no `Domain:` is counted as execution and `validate` warns about it.
-`prokron domains` lists every task by how its domain was decided and names
+`praukron domains` lists every task by how its domain was decided and names
 the ones that need a `Domain:`.
 
 `TRACE.md` holds operational events — tool calls, commands, mini-actions,
@@ -218,8 +218,8 @@ count as progress.
 ### Moving an older installation
 
 ```sh
-prokron migrate           # report what it would do
-prokron migrate --apply   # do it
+praukron migrate           # report what it would do
+praukron migrate --apply   # do it
 ```
 
 Handles a v0.1 chronicle (a rewrite, originals archived) and a v0.2 one (a
@@ -236,22 +236,22 @@ runtime's version, never the version of the project you are tracking.
 ## The workflows your agent runs
 
 These are prompts, not code. Each one is a Markdown file in
-`.prokron/commands/`, and any capable agent can follow it directly.
+`.praukron/commands/`, and any capable agent can follow it directly.
 
 | Purpose | Claude Code / OpenCode | Codex | Anything else |
 |---|---|---|---|
-| Initialize | `/prokron-init [new\|existing]` | `$prokron init [new\|existing]` | Read `AGENTS.md`, follow `.prokron/commands/prokron-init.md` |
-| Start or continue a task | `/prokron-work [task]` | `$prokron work [task]` | `prokron-work.md` |
-| Record or change a decision | `/prokron-decide [decision]` | `$prokron decide [decision]` | `prokron-decide.md` |
-| Save a handoff | `/prokron-checkpoint` | `$prokron checkpoint` | `prokron-checkpoint.md` |
-| Recover current work | `/prokron-resume` | `$prokron resume` | `prokron-resume.md` |
-| Record decisions an existing codebase already depends on | `/prokron-baseline` | `$prokron baseline` | `prokron-baseline.md` |
+| Initialize | `/praukron-init [new\|existing]` | `$praukron init [new\|existing]` | Read `AGENTS.md`, follow `.praukron/commands/praukron-init.md` |
+| Start or continue a task | `/praukron-work [task]` | `$praukron work [task]` | `praukron-work.md` |
+| Record or change a decision | `/praukron-decide [decision]` | `$praukron decide [decision]` | `praukron-decide.md` |
+| Save a handoff | `/praukron-checkpoint` | `$praukron checkpoint` | `praukron-checkpoint.md` |
+| Recover current work | `/praukron-resume` | `$praukron resume` | `praukron-resume.md` |
+| Record decisions an existing codebase already depends on | `/praukron-baseline` | `$praukron baseline` | `praukron-baseline.md` |
 
 **You will not need these most of the time.** The rules installed into
 `AGENTS.md` ask an agent to create the task, write its contract, record a
 decision and keep progress current as part of ordinary work. The commands exist
-for when you want to invoke a step deliberately — most often `/prokron-resume`
-at the start of a session and `/prokron-checkpoint` before you stop.
+for when you want to invoke a step deliberately — most often `/praukron-resume`
+at the start of a session and `/praukron-checkpoint` before you stop.
 
 ---
 
@@ -267,7 +267,7 @@ implementation: a task in `TASKS.md`, a contract in `ACCEPTANCE.md`, and
 `INTENT.md` naming that one task. If a material choice gets made along the way,
 an ADR should appear without you asking for one.
 
-**Checking.** `prokron status`, or open the dashboard. Click a task to see its
+**Checking.** `praukron status`, or open the dashboard. Click a task to see its
 contract, every criterion, and the evidence behind each. `DONE` with a criterion
 still `NOT_RUN` is a validation error, and the tool will say so.
 
@@ -285,21 +285,21 @@ actually needs.
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| A new feature seems missing from the dashboard | The page was written by an older release | `prokron dashboard` |
-| `status` says views were written by another version | Same | `prokron compile && prokron graph && prokron dashboard` |
-| `Refusing to overwrite views written by prokron …` | A newer release compiled them; this installation is older | Reinstall to upgrade; `--force` only if you mean to downgrade them |
-| The installer lists files under `.prokron/upgrade/` | You had edited that guidance, so the new version was staged beside it | Merge what you want, then delete `.prokron/upgrade/` |
-| `index-stale` or `index-missing` warning | The records changed, or `INDEX.md` was edited by hand | `prokron compile` |
+| A new feature seems missing from the dashboard | The page was written by an older release | `praukron dashboard` |
+| `status` says views were written by another version | Same | `praukron compile && praukron graph && praukron dashboard` |
+| `Refusing to overwrite views written by praukron …` | A newer release compiled them; this installation is older | Reinstall to upgrade; `--force` only if you mean to downgrade them |
+| The installer lists files under `.praukron/upgrade/` | You had edited that guidance, so the new version was staged beside it | Merge what you want, then delete `.praukron/upgrade/` |
+| `index-stale` or `index-missing` warning | The records changed, or `INDEX.md` was edited by hand | `praukron compile` |
 | `debt-trigger-reached` warning | A debt's trigger is reached and no repayment is scheduled | Schedule a task and link it, or record why the debt is still acceptable |
-| `ambiguous-domain` warning | A phase-independent task has no `Domain:` | Add `- Domain: execution` or `- Domain: operations`; `prokron domains` lists them |
+| `ambiguous-domain` warning | A phase-independent task has no `Domain:` | Add `- Domain: execution` or `- Domain: operations`; `praukron domains` lists them |
 | A maintenance task disappeared from the Overview | It is declared `operations`, so it no longer competes with product work | Find it under Operations; it appears on the Overview only if execution waits on it |
 | `stale-reference` warning | `HANDOFF.md` or `INTENT.md` names a file that moved or was deleted | Update the path in the handoff |
-| Merge conflict in `.prokron/compiled/` | Both branches recompiled | Take either side, then `prokron compile && prokron graph && prokron dashboard` |
+| Merge conflict in `.praukron/compiled/` | Both branches recompiled | Take either side, then `praukron compile && praukron graph && praukron dashboard` |
 | Merge conflict in `INTENT.md` or `HANDOFF.md` | Both branches changed current state | Resolve by hand toward the branch whose work is current |
-| `prokron: command not found` | No launcher on `PATH` | `.prokron/prokron …`, or reinstall without `--no-link` |
-| `No .prokron/ in … or any parent directory` | Running outside an installed project | `cd` into it, or install there |
-| `status` reports an empty project | `existing` mode starts empty on purpose | Work normally; it records from now on. To capture decisions the code already depends on, ask for `/prokron-baseline` |
-| The compiler refuses to compile | Validation errors | `prokron validate` names the file and anchor |
+| `praukron: command not found` | No launcher on `PATH` | `.praukron/praukron …`, or reinstall without `--no-link` |
+| `No .praukron/ in … or any parent directory` | Running outside an installed project | `cd` into it, or install there |
+| `status` reports an empty project | `existing` mode starts empty on purpose | Work normally; it records from now on. To capture decisions the code already depends on, ask for `/praukron-baseline` |
+| The compiler refuses to compile | Validation errors | `praukron validate` names the file and anchor |
 | The diagram is unreadable | It opened fitted, or the library is unreachable | Zoom, drag, hover to trace a chain; offline it falls back to diagram source |
 | Something disagrees with the code | The chronicle records intent, the code records what exists | Reconcile deliberately; do not silently trust either |
 
@@ -307,7 +307,7 @@ actually needs.
 
 ## Rules worth knowing before you fight them
 
-- **`.prokron/chronicle/` is authority. `.prokron/compiled/` is output.** Delete
+- **`.praukron/chronicle/` is authority. `.praukron/compiled/` is output.** Delete
   the second and rebuild it; never hand-edit it.
 - **A contract freezes when its task starts.** Changing it takes an Acceptance
   Change Request, not an edit. This is the rule that makes "done" mean anything.
@@ -315,7 +315,7 @@ actually needs.
   columns, and only a named human can record the top one.
 - **Nothing is invented.** No duration unless someone recorded one, no date
   unless someone set one, `UNKNOWN` the rest of the time.
-- **Prokron owns project understanding, not execution.** It schedules nothing
+- **Praukron owns project understanding, not execution.** It schedules nothing
   and runs nothing. Your agents and you do the work.
 
 ---

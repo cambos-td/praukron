@@ -1,7 +1,7 @@
 {
   "upload_type": "software",
-  "title": "Prokron: repository-native project memory and governance for human-AI software development",
-  "description": "<p>Prokron is a repository-native project-state protocol and reference implementation for asynchronous human-AI software development.</p><p>It keeps people and coding agents working from the same explicit project state by storing phases, tasks, dependencies, decisions, acceptance contracts and evidence as versioned Markdown inside the repository. A deterministic compiler, written with the Python standard library and no network or model provider, derives project state from those records and projects it as an interactive dashboard for humans and structured context for agents.</p><p>Prokron is designed to preserve project authority, causal history and definition of done across asynchronous human and AI work without relying on hidden agent memory. It owns project understanding, not project execution.</p>",
+  "title": "Praukron: repository-native project memory and governance for human-AI software development",
+  "description": "<p>Praukron is a repository-native project-state protocol and reference implementation for asynchronous human-AI software development.</p><p>It keeps people and coding agents working from the same explicit project state by storing phases, tasks, dependencies, decisions, acceptance contracts and evidence as versioned Markdown inside the repository. A deterministic compiler, written with the Python standard library and no network or model provider, derives project state from those records and projects it as an interactive dashboard for humans and structured context for agents.</p><p>Praukron is designed to preserve project authority, causal history and definition of done across asynchronous human and AI work without relying on hidden agent memory. It owns project understanding, not project execution.</p>",
   "creators": [
     {
       "name": "Qomero"
@@ -25,7 +25,7 @@
   ],
   "related_identifiers": [
     {
-      "identifier": "https://github.com/qomero/prokron",
+      "identifier": "https://github.com/qomero/praukron",
       "relation": "isSupplementTo",
       "scheme": "url"
     },
@@ -34,5 +34,7 @@
       "relation": "isVersionOf",
       "scheme": "doi"
     }
-  ]
+  ],
+  "version": "1.1.0",
+  "publication_date": "2026-10-04"
 }

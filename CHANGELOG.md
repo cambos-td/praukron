@@ -1,12 +1,34 @@
 # Changelog
 
-Prokron records its own history in `.prokron/chronicle/JOURNAL.md` and its
-decisions in `.prokron/chronicle/ADR/`. This file is the short version, for
+Praukron records its own history in `.praukron/chronicle/JOURNAL.md` and its
+decisions in `.praukron/chronicle/ADR/`. This file is the short version, for
 people arriving from a release page.
+
+## 1.1.0 — 2026-10-04
+
+- Rename the project, repository, commands, package and owned directory to
+  Praukron / `praukron` / `.praukron/`.
+- Preserve DOI identifiers and Git history. Upgrade existing Prokron
+  installations without rewriting their chronicle; keep compatibility aliases
+  for old launchers and preserve edited guidance.
+
+- Record provisional assumptions and owner responses explicitly; expose owner-held
+  blockers and an Assumptions review queue in the dashboard.
+- Add `praukron respond` and `praukron dashboard --serve` for validated,
+  append-only owner guidance. GitHub-account-based owner verification remains
+  planned and is not claimed by this release.
+- Reduce task/context packets and make progress metrics state what they measure.
+
+### Upgrading from Prokron 1.0.0
+
+Run the published Praukron installer. It moves `.prokron/` to `.praukron/`
+without rewriting project records, keeps an alias for old launchers, and stages
+edited guidance for review. Use `praukron` for current commands. Existing
+release tags and DOI identifiers remain intact.
 
 ## 1.0.0 — 2026-09-24
 
-Prokron 1.0 freezes its core scope (ADR-051): Prokron knows the project; it
+Praukron 1.0 freezes its core scope (ADR-051): Praukron knows the project; it
 does not run the project. A fresh agent can enter a repository, find
 legitimate work, get the minimum authoritative context, see unresolved state
 and other actors' claims, and avoid conflicting work without reading the
@@ -35,26 +57,26 @@ repository wholesale.
   chronicle README, templates, AGENTS.md, the skill, and the public documents
   describe it.
 
-- `prokron context` without a task prints an orientation packet projected from
+- `praukron context` without a task prints an orientation packet projected from
   the compiled report: phase, execution in flight, ready and blocked work, the
   critical path, the main blocker, the next gate, and where authority lives
   (ADR-050).
-- `prokron context <task>` adds `authority` (the exact `file#anchor` records to
+- `praukron context <task>` adds `authority` (the exact `file#anchor` records to
   read), `problems` (dependencies, decisions, phases, and contracts that do not
   resolve), and each dependency's status.
-- `prokron context <task>` exposes `task.claim` (`active`, `holder`, `claimed`),
+- `praukron context <task>` exposes `task.claim` (`active`, `holder`, `claimed`),
   read from the existing `WIP`, `Owner:`, and `Claimed:` fields, so an agent
   can see that another actor holds a task (ADR-051).
 
 ### Scope
 
-- Core scope is frozen (ADR-051): Prokron knows the project; it does not run
+- Core scope is frozen (ADR-051): Praukron knows the project; it does not run
   the project. Later changes come from failures demonstrated while dogfooding
   real repositories.
 
 ### Changed
 
-- AGENTS.md makes `prokron context <task>` the step after `INDEX.md`, says that
+- AGENTS.md makes `praukron context <task>` the step after `INDEX.md`, says that
   compiled output and packets are derived maps whose disagreement with a record
   is reported rather than reconciled, and forbids starting a task merely
   because unrelated work is visible. The CLAUDE.md block is now a thin adapter
@@ -76,10 +98,10 @@ repository wholesale.
 - **Agent boot protocol**: AGENTS.md and a managed CLAUDE.md block tell
   agents to read `INDEX.md` first, then only the records it points to, then
   code. The chronicle read order starts with it.
-- **`prokron retrieve`**: the records a question or id needs, routed by the
+- **`praukron retrieve`**: the records a question or id needs, routed by the
   index, each labelled with its source, with nothing written. ADR-048.
-- **Optional CodeGraph**: `prokron codegraph status|setup|doctor|uninit`,
-  `prokron retrieve <task> --code`, and optional `Files:`/`Symbols:` task
+- **Optional CodeGraph**: `praukron codegraph status|setup|doctor|uninit`,
+  `praukron retrieve <task> --code`, and optional `Files:`/`Symbols:` task
   anchors. Never required, never part of project state, and never allowed to
   change agent configuration without consent. ADR-049.
 
@@ -109,7 +131,7 @@ repository wholesale.
 - **An Operations tab**: summary, open operations with their traces, failures
   and warnings, tool calls, mini-actions, changes, retries, and a timeline.
   Execution failures link to the events that name them.
-- `prokron domains`: how each task's domain was decided, which tasks need a
+- `praukron domains`: how each task's domain was decided, which tasks need a
   `Domain:`, and what operational history exists. Read-only.
 - The task graph groups operations tasks in their own dashed group; All Tasks
   filters by domain; the task dialog shows domain and related events.
@@ -143,7 +165,7 @@ repository wholesale.
 - **Reinstalling upgrades guidance.** The installer records a checksum of each
   guidance file it writes. Unedited guidance is replaced on the next install;
   edited guidance is kept and the new version staged under
-  `.prokron/upgrade/`. The Prokron block in `AGENTS.md` is handled the same
+  `.praukron/upgrade/`. The Praukron block in `AGENTS.md` is handled the same
   way without touching the rules around it. ADR-040.
 - **The one-line install installs the latest release**, not `main`, by running
   that release's own installer. `--ref <tag|branch>` picks another, and an
@@ -153,7 +175,7 @@ repository wholesale.
   `graph` and `dashboard` refuse unless given `--force`, and `status` says to
   upgrade rather than recompile. ADR-041.
 - `status` counts done tasks that nobody has reviewed or verified.
-- A migrated v0.1 handoff now names `.prokron/compiled/STATE.md`, where
+- A migrated v0.1 handoff now names `.praukron/compiled/STATE.md`, where
   generated state has lived since ADR-024.
 
 ### Added
@@ -164,7 +186,7 @@ repository wholesale.
   workflows say how to settle `INTENT.md` and `HANDOFF.md` after a merge.
 - A `stale-reference` warning for backticked file paths in `HANDOFF.md` or
   `INTENT.md` that no longer exist.
-- **`/prokron-baseline`**, an opt-in workflow for existing repositories. On
+- **`/praukron-baseline`**, an opt-in workflow for existing repositories. On
   the owner's request it proposes at most ten ADRs for decisions the code
   already depends on, each marked `Origin: RECONSTRUCTED` with an `Evidence:`
   field naming what it was inferred from. It creates no tasks, journal history
@@ -196,7 +218,7 @@ repository wholesale.
 
 ### Added
 
-- **[`docs/GUIDE.md`](docs/GUIDE.md)** — using Prokron day to day: every
+- **[`docs/GUIDE.md`](docs/GUIDE.md)** — using Praukron day to day: every
   command and flag, the agent workflows and when you actually need them, what
   an ordinary session looks like, and a table of symptoms with their causes.
   Written from an audit, so every command in it is one that was run against a
@@ -204,9 +226,9 @@ repository wholesale.
 
 ### Fixed
 
-- **Claude Code's slash menu showed the plumbing.** `/prokron-work` read
-  `Follow .prokron/commands/prokron-work.md` where the same command in OpenCode
-  read `Start or continue one Prokron task`. All five now carry a description
+- **Claude Code's slash menu showed the plumbing.** `/praukron-work` read
+  `Follow .praukron/commands/praukron-work.md` where the same command in OpenCode
+  read `Start or continue one Praukron task`. All five now carry a description
   and an argument hint.
 
 ### Checked
@@ -222,9 +244,9 @@ Upgrading left the old dashboard in place. Reported from real use.
 ### Fixed
 
 - **Upgrading now refreshes the generated views.** Installing replaced the
-  runtime but left `.prokron/compiled/` alone, so an upgraded project ran a
+  runtime but left `.praukron/compiled/` alone, so an upgraded project ran a
   current tool beside a page the previous release had written — and a shipped
-  feature looked missing. If you hit this, `prokron dashboard` fixes it; the
+  feature looked missing. If you hit this, `praukron dashboard` fixes it; the
   installer now does it for you.
 
   The refresh runs only when an installation already has generated views and
@@ -235,7 +257,7 @@ Upgrading left the old dashboard in place. Reported from real use.
 ### Added
 
 - **Compiled output records the version that wrote it** (`generatorVersion` in
-  `project.json`), and `prokron status` reports when it differs from the
+  `project.json`), and `praukron status` reports when it differs from the
   running tool. That covers the reader who never reinstalls.
 
 ### Note
@@ -252,7 +274,7 @@ CI found a determinism defect on its first run.
 
 - **Compiled output no longer depends on the directory the repository sits in.**
   The project name came from `root.name`, so the same chronicle compiled to
-  `Prokron` in one checkout and `prokron` in another, and three generated files
+  `Praukron` in one checkout and `praukron` in another, and three generated files
   differed. The regeneration claim had therefore only ever held within one
   machine's directory naming.
 
@@ -276,7 +298,7 @@ Nothing ran the tests except a person typing the command. Now something does.
   - `tests` — the unit and installer suites on Ubuntu and macOS, Python 3.9
     through 3.13, with no dependency installed.
   - `invariants` — validates the real chronicle, then deletes
-    `.prokron/compiled/`, rebuilds it, and fails if the result differs from
+    `.praukron/compiled/`, rebuilds it, and fails if the result differs from
     what is committed. This makes Gate B and `AC-T-P2-14-01` continuously
     enforced instead of periodically remembered.
   - `no network, no dependencies` — asserts the runtime imports nothing outside
@@ -295,7 +317,7 @@ published. ADR-029.
 
 ### Decided
 
-- `.prokron/compiled/` stays committed. The diff is now the mechanism that
+- `.praukron/compiled/` stays committed. The diff is now the mechanism that
   proves regeneration, which settles an open question the handoff had carried.
 
 ## 0.4.1 — 2026-09-22
@@ -335,34 +357,34 @@ The continuity pilot ran in full. Every phase is closed and every gate is green.
 
 ## 0.4.0 — 2026-09-22
 
-Installing and running Prokron both got shorter.
+Installing and running Praukron both got shorter.
 
 ### Changed
 
 - **Installing takes one line with no arguments.**
 
   ```sh
-  curl -fsSL https://raw.githubusercontent.com/qomero/prokron/main/install.sh | sh
+  curl -fsSL https://raw.githubusercontent.com/qomero/praukron/main/install.sh | sh
   ```
 
   `existing` is the default mode; `new` and a target directory are still
   accepted. A misspelled mode is now an error rather than being read as a
   target directory.
-- **The command is `prokron`.** The installer writes a small launcher into a
+- **The command is `praukron`.** The installer writes a small launcher into a
   directory already on your `PATH`, so it works from anywhere in the project
-  instead of `.prokron/prokron` from the root only. The launcher carries no
+  instead of `.praukron/praukron` from the root only. The launcher carries no
   behaviour: it finds the nearest project and runs that project's own runtime,
   so two repositories on different releases stay independent. ADR-027.
 
   It creates no directories, changes no shell configuration, and never replaces
-  a `prokron` it did not write. `--no-link` skips it, and `.prokron/prokron`
+  a `praukron` it did not write. `--no-link` skips it, and `.praukron/praukron`
   keeps working — which is still what the installed agent instructions use,
   since an agent may run with a different `PATH`.
 
 ### Fixed
 
-- The README showed `prokron status` in its examples while telling readers to
-  type `.prokron/prokron status`. A test now holds the published examples to
+- The README showed `praukron status` in its examples while telling readers to
+  type `.praukron/praukron status`. A test now holds the published examples to
   one form.
 
 ## 0.3.3 — 2026-09-22
@@ -372,10 +394,10 @@ Documentation only. No behaviour changed.
 ### Fixed
 
 - **A destructive instruction in the README.** It told readers to run
-  `rm -rf .prokron && prokron compile` to demonstrate that compiled output
+  `rm -rf .praukron && praukron compile` to demonstrate that compiled output
   regenerates. That was accurate until v0.3.0 moved the whole installation into
-  `.prokron/`; afterwards it deleted the chronicle, the runtime and the command.
-  It now names `.prokron/compiled/`.
+  `.praukron/`; afterwards it deleted the chronicle, the runtime and the command.
+  It now names `.praukron/compiled/`.
 - **`docs/SPEC.md` contradicted the product.** §8 listed a CLI and a dashboard
   as out of scope, both shipped in P2. §4.1 cited `DECISIONS.md`, removed in
   v0.2. §6 named a directory that moved in v0.3. The compiled-file table was
@@ -388,7 +410,7 @@ Documentation only. No behaviour changed.
   participant — another agent, another model, a teammate — loses what the code
   meant. That comes before any record, command or file is named.
 - **Both projections of project state are shown rather than asserted.** The
-  dashboard for a person, and real `prokron context` output for an agent, from
+  dashboard for a person, and real `praukron context` output for an agent, from
   this repository.
 - **What is implemented, what is designed, and what is unproven are separated.**
   Nothing specified-only is described as available.
@@ -429,7 +451,7 @@ Every existing image is preserved, unmodified and unrenamed.
   transitively depends on, and everything that transitively depends on it stay
   lit; the rest dims. The chain is walked over the compiled dependencies
   embedded in the page, never over the drawing, so it cannot disagree with
-  `prokron explain`. ADR-025.
+  `praukron explain`. ADR-025.
 
 ### Fixed
 
@@ -441,38 +463,38 @@ source with every number intact when the diagram library cannot be loaded.
 
 ## 0.3.0 — 2026-09-22
 
-Installing Prokron used to put five entries at the root of a repository it does
+Installing Praukron used to put five entries at the root of a repository it does
 not own. It now puts one.
 
 ### Changed
 
-- **One directory.** Everything Prokron installs lives under `.prokron/`:
+- **One directory.** Everything Praukron installs lives under `.praukron/`:
   `chronicle/` for the authored records, `compiled/` for generated state,
-  `runtime/` for the tool's code, `commands/` for the workflows, and `prokron`
+  `runtime/` for the tool's code, `commands/` for the workflows, and `praukron`
   as the command. The separation between authored authority and compiled output
   is unchanged — it is two subdirectories now instead of two root directories,
   and the compiler still writes only into `compiled/`. ADR-024.
 - **Outside that directory, only fixed addresses.** `AGENTS.md`, `CLAUDE.md`,
-  `.claude/commands/`, `.opencode/commands/` and `.agents/skills/prokron/` are
-  read by agent hosts at paths Prokron does not choose. Nothing else is written.
-- **The command moved** from `./bin/prokron` to `.prokron/prokron`.
+  `.claude/commands/`, `.opencode/commands/` and `.agents/skills/praukron/` are
+  read by agent hosts at paths Praukron does not choose. Nothing else is written.
+- **The command moved** from `./bin/praukron` to `.praukron/praukron`.
 
 ### Added
 
-- **`prokron migrate` relocates a v0.2 installation.** Coming from v0.2 the
+- **`praukron migrate` relocates a v0.2 installation.** Coming from v0.2 the
   records move byte for byte and nothing is archived, because nothing is
   transformed. Coming from v0.1 it still rewrites and archives as before. Host
   command files are repointed at the workflows' new location.
 
 ### Removed
 
-- `templates/.prokron/README.md`, a template nothing installed. The compiled
+- `templates/.praukron/README.md`, a template nothing installed. The compiled
   directory's README is generated, and the unused copy had already drifted from
   what the compiler writes.
 
 ## 0.2.5 — 2026-09-22
 
-Rewrites the README around what Prokron actually is now: project tracking and
+Rewrites the README around what Praukron actually is now: project tracking and
 project management, read by a person in a browser and by an agent as text.
 
 ### Fixed
@@ -562,20 +584,20 @@ shipped beside the runtime is part of what a user installs.
 
 ## 0.2.2 — 2026-09-21
 
-Fixes the upgrade path. 0.2.0 moved authority from `.prokron/` to `prokron/`
+Fixes the upgrade path. 0.2.0 moved authority from `.praukron/` to `praukron/`
 and shipped without a migration, so a real project that updated kept every
 record and reported an empty project. Preserving files is not the same as
 carrying a project forward.
 
 ### Added
 
-- **`prokron migrate`.** Moves a v0.1 chronicle into the v0.2 layout: tasks,
-  decisions, intent and journal to `prokron/`, prose acceptance converted into
+- **`praukron migrate`.** Moves a v0.1 chronicle into the v0.2 layout: tasks,
+  decisions, intent and journal to `praukron/`, prose acceptance converted into
   contracts with their original wording, `DECISIONS.md` split into
-  `prokron/ADR/` with a supersession index. It reports by default and changes
+  `praukron/ADR/` with a supersession index. It reports by default and changes
   nothing without `--apply`. Every original file is archived unchanged; nothing
   is deleted. `--phase` assigns a phase when you have one.
-- Installation and `prokron status` both detect a stranded v0.1 chronicle and
+- Installation and `praukron status` both detect a stranded v0.1 chronicle and
   name the command to run.
 
 ### Fixed
@@ -636,24 +658,24 @@ deterministically, without a model in the loop.
 
 ### Added
 
-- **Acceptance contracts.** `prokron/ACCEPTANCE.md` is the completion authority.
+- **Acceptance contracts.** `praukron/ACCEPTANCE.md` is the completion authority.
   A task is done when its frozen contract has sufficient evidence, not when
   someone says so. Criteria carry stable identifiers, one of five evidence
   classes, and a state. Contracts freeze when work starts and change only
   through an accepted change request.
-- **Phases and gates.** `prokron/PHASES.md` records each phase's outcome, entry,
+- **Phases and gates.** `praukron/PHASES.md` records each phase's outcome, entry,
   exit, exit authority, and status. Gates are explicit release conditions that
   can block a phase exit. Every task names a phase or is marked `P-NONE`.
-- **A deterministic runtime.** `prokron validate | compile | status | graph |
+- **A deterministic runtime.** `praukron validate | compile | status | graph |
   dashboard | explain | context`. Standard-library Python, no dependencies, no
   package to install, no network, no model provider.
-- **Compiled project state.** `.prokron/project.json` with provenance on every
+- **Compiled project state.** `.praukron/project.json` with provenance on every
   object, plus generated Markdown views, six Mermaid diagrams, and a
   self-contained HTML dashboard with task drill-down.
 - **Analytics.** Ready work, blockers, a typed obstacle taxonomy, critical path,
   and six progress metrics reported separately rather than rolled into one
   invented number.
-- **Agent context packets.** `prokron context <task>` emits the minimal packet an
+- **Agent context packets.** `praukron context <task>` emits the minimal packet an
   agent needs to start, with a reviewer variant carrying the finding taxonomy.
 - **A builder and reviewer contract** in `AGENTS.md`, including which findings
   block completion and a seven-level hierarchy for settling disagreements.
@@ -661,9 +683,9 @@ deterministically, without a model in the loop.
 ### Changed
 
 - **Authored and compiled state are now separate.** Authority lives in
-  `prokron/`; `.prokron/` is generated and safe to delete. Deleting it and
+  `praukron/`; `.praukron/` is generated and safe to delete. Deleting it and
   recompiling reproduces every file byte for byte.
-- `DECISIONS.md` became one file per ADR under `prokron/ADR/`, with an index
+- `DECISIONS.md` became one file per ADR under `praukron/ADR/`, with an index
   that records supersession without editing history.
 - `STATE.md` and `TASK_GRAPH.md` are generated rather than hand-maintained.
 - Task acceptance moved from prose in `TASKS.md` to a contract reference.

@@ -1,8 +1,8 @@
-# Contributing to Prokron
+# Contributing to Praukron
 
-Prokron tracks its own development with Prokron. The maintainers keep that
+Praukron tracks its own development with Praukron. The maintainers keep that
 chronicle locally; it is not published (ADR-042), so a clone has the tool, its
-templates and its tests, but not `.prokron/chronicle/`.
+templates and its tests, but not `.praukron/chronicle/`.
 
 ## The shape of a change
 
@@ -53,8 +53,8 @@ claims.
   runtime.
 - **Deterministic.** The same authored documents produce the same output every
   time. No model provider, no network, no wall-clock in a computed value.
-- **Authority is `.prokron/chronicle/`** in every installed project.
-  `.prokron/compiled/` is generated and disposable. Never hand-edit it, and
+- **Authority is `.praukron/chronicle/`** in every installed project.
+  `.praukron/compiled/` is generated and disposable. Never hand-edit it, and
   never let a generated view decide a question an authored document answers.
 - **Do not invent facts.** A duration only when someone recorded one, a date
   only when someone set one, `UNKNOWN` the rest of the time.
@@ -70,7 +70,7 @@ order rather than by seniority, highest first:
 1. Product and domain authority
 2. The explicit acceptance contract
 3. Invariants
-4. Accepted decisions in .prokron/chronicle/ADR/
+4. Accepted decisions in .praukron/chronicle/ADR/
 5. Reproducible tests and evidence
 6. Existing code convention
 7. Reviewer preference
@@ -108,7 +108,7 @@ Phase specifications are internal working documents and are not published
 
 ## Scope
 
-Prokron owns project understanding, not project execution. It schedules
+Praukron owns project understanding, not project execution. It schedules
 nothing, assigns nothing and runs nothing. A change that would decide what
 happens next on its own does not belong here; a change that helps a participant
 understand what is already true might.

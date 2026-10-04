@@ -3,8 +3,8 @@
 What the owner said, verbatim. Append-only: an agent never edits, reorders,
 normalizes, or clears an entry. When the owner answers anywhere else, the agent
 records the answer here verbatim, with `Via: relayed by <agent> from
-<channel>`, before acting on it. `prokron dashboard --serve` and
-`prokron respond` append here for the owner.
+<channel>`, before acting on it. `praukron dashboard --serve` and
+`praukron respond` append here for the owner.
 
 Format:
 

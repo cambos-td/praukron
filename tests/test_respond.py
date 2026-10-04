@@ -1,4 +1,4 @@
-"""`prokron respond`: the one governed write into the chronicle (T-RESPOND-01, ADR-055)."""
+"""`praukron respond`: the one governed write into the chronicle (T-RESPOND-01, ADR-055)."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prokron import cli, compile as compiler, layout, respond, validate  # noqa: E402
+from praukron import cli, compile as compiler, layout, respond, validate  # noqa: E402
 from test_assumptions import AssumptionCase, RESPONSES  # noqa: E402
 
 

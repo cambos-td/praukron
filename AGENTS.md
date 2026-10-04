@@ -1,33 +1,33 @@
-<!-- project-prokron:start -->
+<!-- project-praukron:start -->
 
-# Prokron
+# Praukron
 
-Everything Prokron owns is inside `.prokron/`. `.prokron/chronicle/` is this
-repository's project chronicle, its canonical memory. `.prokron/compiled/` is
+Everything Praukron owns is inside `.praukron/`. `.praukron/chronicle/` is this
+repository's project chronicle, its canonical memory. `.praukron/compiled/` is
 compiled output: read it for convenience, never edit it, and never treat it as
 authority.
 
 ## Project context: read the index first
 
-Before reading broad repository context or the rest of `.prokron/chronicle/`:
+Before reading broad repository context or the rest of `.praukron/chronicle/`:
 
-1. Read `.prokron/chronicle/INDEX.md`. It is generated from the chronicle and
+1. Read `.praukron/chronicle/INDEX.md`. It is generated from the chronicle and
    says what matters now and where each record lives. If it is missing, run
-   `.prokron/prokron compile`.
+   `.praukron/praukron compile`.
 2. Identify your task: the one you were given, or one the index names as in
-   flight or ready. Run `.prokron/prokron context` without a task only when
+   flight or ready. Run `.praukron/praukron context` without a task only when
    the index is not enough to choose; skip it when a task was given. Then run
-   `.prokron/prokron context <task>` for its lineage (thesis → phase → module),
+   `.praukron/praukron context <task>` for its lineage (thesis → phase → module),
    claim, dependencies, blockers, acceptance, invariants, decisions, evidence,
    implementation anchors, and the exact `file#anchor` records to read. Do not start a task merely because
    unrelated work is visible in the repository.
-3. Read only those records. `.prokron/prokron retrieve "<question or task>"`
+3. Read only those records. `.praukron/praukron retrieve "<question or task>"`
    returns exactly them, each labelled with its source. When the packet
    includes the handoff, do not read `HANDOFF.md` again.
 4. Do not load the whole chronicle by default. Read further Markdown only to
    resolve an ambiguity or when the packet is not enough.
 5. Explore the code only after the project context is resolved. Where
-   CodeGraph is installed, `.prokron/prokron retrieve <task> --code` adds code
+   CodeGraph is installed, `.praukron/praukron retrieve <task> --code` adds code
    structure after the records, never before them.
 
 Use the narrowest projection that answers the current question, and expand
@@ -35,51 +35,51 @@ progressively: index, then the task packet, then `retrieve`, then the exact
 record, then the code. Never preload the chronicle in full, `TASK_GRAPH.md`, or
 `project.json`, and never re-read what the current packet already holds.
 
-`INDEX.md`, `.prokron/compiled/`, and `context` output are derived maps, not
+`INDEX.md`, `.praukron/compiled/`, and `context` output are derived maps, not
 authority; never edit them. When one disagrees with a record, the record wins:
 report the inconsistency rather than reconciling it silently. A packet's
 `problems` lists references that do not resolve.
-`.prokron/chronicle/README.md` explains how the records work.
+`.praukron/chronicle/README.md` explains how the records work.
 
 The repository ships a deterministic tool. Use it rather than re-deriving state
 by reading files:
 
 ```sh
-.prokron/prokron status          # phase, progress, ready, blocked, gates, next
-.prokron/prokron explain T-123   # one task: deps, criteria, blockers, evidence
-.prokron/prokron context         # orientation: phase, in flight, ready, blocked, path
-.prokron/prokron context T-123   # the minimal packet needed to start that task
-.prokron/prokron retrieve "why is P1 blocked?"   # only the records a question needs
-.prokron/prokron validate        # check authority before and after editing it
-.prokron/prokron compile         # refresh compiled/ after changing chronicle/
-.prokron/prokron dashboard       # a browsable page of the same state
+.praukron/praukron status          # phase, progress, ready, blocked, gates, next
+.praukron/praukron explain T-123   # one task: deps, criteria, blockers, evidence
+.praukron/praukron context         # orientation: phase, in flight, ready, blocked, path
+.praukron/praukron context T-123   # the minimal packet needed to start that task
+.praukron/praukron retrieve "why is P1 blocked?"   # only the records a question needs
+.praukron/praukron validate        # check authority before and after editing it
+.praukron/praukron compile         # refresh compiled/ after changing chronicle/
+.praukron/praukron dashboard       # a browsable page of the same state
 ```
 
 Run `validate` after editing authority. Before finishing, refresh everything in
-`.prokron/compiled/`: `compile` does not redraw the graphs or the dashboard, so
+`.praukron/compiled/`: `compile` does not redraw the graphs or the dashboard, so
 run `compile && graph && dashboard`; a stale dashboard shows people a state the
 chronicle no longer holds. The tool
-never edits a record in `.prokron/chronicle/`. It writes the generated
-`INDEX.md` there, and `prokron respond` appends the owner's responses to
+never edits a record in `.praukron/chronicle/`. It writes the generated
+`INDEX.md` there, and `praukron respond` appends the owner's responses to
 `RESPONSES.md`, validated and atomic; nothing else in the chronicle is
 written by the tool.
 
 Recognize these workflows:
 
-- `/prokron-init [new|existing]` → `.prokron/commands/prokron-init.md`
-- `/prokron-work [task]` → `.prokron/commands/prokron-work.md`
-- `/prokron-decide` → `.prokron/commands/prokron-decide.md`
-- `/prokron-checkpoint` → `.prokron/commands/prokron-checkpoint.md`
-- `/prokron-resume` → `.prokron/commands/prokron-resume.md`
-- `/prokron-baseline` → `.prokron/commands/prokron-baseline.md` (only when the owner asks)
+- `/praukron-init [new|existing]` → `.praukron/commands/praukron-init.md`
+- `/praukron-work [task]` → `.praukron/commands/praukron-work.md`
+- `/praukron-decide` → `.praukron/commands/praukron-decide.md`
+- `/praukron-checkpoint` → `.praukron/commands/praukron-checkpoint.md`
+- `/praukron-resume` → `.praukron/commands/praukron-resume.md`
+- `/praukron-baseline` → `.praukron/commands/praukron-baseline.md` (only when the owner asks)
 
-Maintain the chronicle automatically; do not wait for a Prokron command. Before
+Maintain the chronicle automatically; do not wait for a Praukron command. Before
 starting newly requested work, create or claim its task, give it one `Module:`
 from `MODULES.md` (its phase comes from the module; a module belongs to a phase
 in `PHASES.md` or to `P-NONE`) and a `Domain:` of `execution` or `operations`,
 write its acceptance contract in
 `ACCEPTANCE.md`, and set the single `INTENT.md` entry. When a material project
-choice is made, accepted, or acted on, append its ADR to `.prokron/chronicle/ADR/`
+choice is made, accepted, or acted on, append its ADR to `.praukron/chronicle/ADR/`
 immediately and link affected tasks. Supersede decisions instead of overwriting
 them. Keep the compiled views synchronized.
 
@@ -144,7 +144,7 @@ first:
 1. Product and domain authority
 2. The explicit acceptance contract
 3. Invariants
-4. Accepted decisions in .prokron/chronicle/ADR/
+4. Accepted decisions in .praukron/chronicle/ADR/
 5. Reproducible tests and evidence
 6. Existing code convention
 7. Reviewer preference
@@ -161,4 +161,4 @@ checkpoint after each meaningful milestone, before a long-running step, and
 before ending. Preserve the active task, exact stopping point, unfinished work,
 and next action.
 
-<!-- project-prokron:end -->
+<!-- project-praukron:end -->

@@ -1,6 +1,6 @@
 """Assumptions, owner responses, and owner-held tasks (P3, ADR-054, ADR-057).
 
-Kept apart from test_prokron.py so the phase's behaviour can be read in one
+Kept apart from test_praukron.py so the phase's behaviour can be read in one
 place. The fixtures are shared.
 """
 
@@ -16,8 +16,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prokron import analytics, compile as compiler, layout, validate  # noqa: E402
-from test_prokron import build_fixture  # noqa: E402
+from praukron import analytics, compile as compiler, layout, validate  # noqa: E402
+from test_praukron import build_fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 GROUPS = ("permission", "security", "external-disclosure", "legal", "source-of-truth")
@@ -53,7 +53,7 @@ class TestAssumptionSpecification(unittest.TestCase):
                      "Without one, all five groups are reserved and `Notify: host` applies",
                      "only by superseding its policy ADR",
                      "carries `Permissions:` and is `HIGH`",
-                     "Prokron sends nothing itself"):
+                     "Praukron sends nothing itself"):
             with self.subTest(rule=rule):
                 self.assertIn(rule, spec)
 
@@ -66,7 +66,7 @@ class TestAssumptionSpecification(unittest.TestCase):
             self.assertIn(row, spec)
 
     def test_init_offers_the_optional_policy_step_on_every_host(self) -> None:
-        text = _flat((ROOT / ".prokron/commands/prokron-init.md").read_text())
+        text = _flat((ROOT / ".praukron/commands/praukron-init.md").read_text())
         for group in GROUPS:
             self.assertIn(f"`{group}`", text)
         for rule in ("offer the owner one optional step", "`- Policy: assumptions`",
@@ -74,15 +74,15 @@ class TestAssumptionSpecification(unittest.TestCase):
                      "always stop whatever the answer"):
             with self.subTest(rule=rule):
                 self.assertIn(rule, text)
-        for host in (".claude/commands/prokron-init.md", ".opencode/commands/prokron-init.md"):
-            self.assertIn(".prokron/commands/prokron-init.md", (ROOT / host).read_text())
-        self.assertIn("`init`", (ROOT / ".agents/skills/prokron/SKILL.md").read_text())
+        for host in (".claude/commands/praukron-init.md", ".opencode/commands/praukron-init.md"):
+            self.assertIn(".praukron/commands/praukron-init.md", (ROOT / host).read_text())
+        self.assertIn("`init`", (ROOT / ".agents/skills/praukron/SKILL.md").read_text())
 
     def test_a_chronicle_without_the_new_files_compiles_as_before(self) -> None:
         """AC-T-ASSUME-SPEC-01-04: nothing is migrated; empty templates change nothing."""
         outputs = []
         for with_templates in (False, True):
-            directory = Path(tempfile.mkdtemp(prefix="prokron-assume-"))
+            directory = Path(tempfile.mkdtemp(prefix="praukron-assume-"))
             self.addCleanup(shutil.rmtree, directory, True)
             build_fixture(directory)
             authority = directory / layout.AUTHORITY_DIR
@@ -114,7 +114,7 @@ class TestAgentGuidance(unittest.TestCase):
                      "Never present an `OPEN` assumption as decided"):
             with self.subTest(rule=rule):
                 self.assertIn(rule, agents)
-        work = _flat((ROOT / ".prokron/commands/prokron-work.md").read_text())
+        work = _flat((ROOT / ".praukron/commands/praukron-work.md").read_text())
         for rule in ("read the packet's `policy`", "before relying on it",
                      "in any criterion evidence that rests on it", "`Authority: owner` task",
                      "record the time and channel on that task", "continue other work"):
@@ -122,7 +122,7 @@ class TestAgentGuidance(unittest.TestCase):
                 self.assertIn(rule, work)
 
     def test_checkpoint_reconciles_and_never_edits_owner_text(self) -> None:
-        text = _flat((ROOT / ".prokron/commands/prokron-checkpoint.md").read_text())
+        text = _flat((ROOT / ".praukron/commands/praukron-checkpoint.md").read_text())
         for rule in ("Reconcile every owner response", "awaiting reconciliation",
                      "through an Acceptance Change Request", "`Reconciled by`",
                      "Never edit, reorder, or clear an entry in `RESPONSES.md`",
@@ -138,16 +138,16 @@ class TestAgentGuidance(unittest.TestCase):
         for command in ("work", "checkpoint"):
             for host in (".claude", ".opencode"):
                 with self.subTest(host=host, command=command):
-                    self.assertIn(f".prokron/commands/prokron-{command}.md",
-                                  (ROOT / host / "commands" / f"prokron-{command}.md").read_text())
-        skill = _flat((ROOT / ".agents/skills/prokron/SKILL.md").read_text())
+                    self.assertIn(f".praukron/commands/praukron-{command}.md",
+                                  (ROOT / host / "commands" / f"praukron-{command}.md").read_text())
+        skill = _flat((ROOT / ".agents/skills/praukron/SKILL.md").read_text())
         self.assertIn("assumption procedure in `AGENTS.md`", skill)
         self.assertIn("never edit `RESPONSES.md`", skill)
         installer = (ROOT / "install.sh").read_text()
-        for shipped in ('"$source_dir/.prokron/commands/prokron-$command.md"',
-                        '"$source_dir/.claude/commands/prokron-$command.md"',
-                        '"$source_dir/.opencode/commands/prokron-$command.md"',
-                        '"$source_dir/.agents/skills/prokron/SKILL.md"',
+        for shipped in ('"$source_dir/.praukron/commands/praukron-$command.md"',
+                        '"$source_dir/.claude/commands/praukron-$command.md"',
+                        '"$source_dir/.opencode/commands/praukron-$command.md"',
+                        '"$source_dir/.agents/skills/praukron/SKILL.md"',
                         'install_block AGENTS.md "$source_dir/AGENTS.md"'):
             self.assertIn(shipped, installer)
 
@@ -211,7 +211,7 @@ POLICY_ADR = """# ADR-002: Assumption policy
 
 class AssumptionCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.dir = Path(tempfile.mkdtemp(prefix="prokron-assume-"))
+        self.dir = Path(tempfile.mkdtemp(prefix="praukron-assume-"))
         self.addCleanup(shutil.rmtree, self.dir, True)
         build_fixture(self.dir)
         self.authority = self.dir / layout.AUTHORITY_DIR
@@ -431,7 +431,7 @@ class TestAssumptionProjection(AssumptionCase):
         from contextlib import redirect_stdout
         out = io.StringIO()
         with redirect_stdout(out):
-            from prokron import cli
+            from praukron import cli
             cli.main(["-C", str(self.dir), "status"])
         expected = ("2 open · 2 HIGH · 1 permission · 1 awaiting reconciliation · "
                     "owner-held: T-THREE (the owner finishes T-TWO)")

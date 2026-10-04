@@ -17,7 +17,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from prokron import analytics, cli, compile as compiler, dashboard, layout, views  # noqa: E402
+from praukron import analytics, cli, compile as compiler, dashboard, layout, views  # noqa: E402
 
 PHASES = """# Phases
 
@@ -104,7 +104,7 @@ ACCEPTANCE = "# Acceptance\n\n" + "".join([
 
 class ProjectionCase(unittest.TestCase):
     def setUp(self) -> None:
-        self.dir = Path(tempfile.mkdtemp(prefix="prokron-projection-"))
+        self.dir = Path(tempfile.mkdtemp(prefix="praukron-projection-"))
         self.addCleanup(shutil.rmtree, self.dir, True)
         authority = self.dir / layout.AUTHORITY_DIR
         (authority / "ADR").mkdir(parents=True)
@@ -211,7 +211,7 @@ class TestProjection(ProjectionCase):
         compiler.write(self.dir, self.project)
         self.assertEqual((self.dir / layout.COMPILED_DIR / "project.json").read_text(), first)
         self.assertEqual((self.dir / layout.AUTHORITY_DIR / "INDEX.md").read_text(), index)
-        from prokron import model
+        from praukron import model
         self.assertEqual(model.VALIDATIONS, ("UNTESTED", "SYNTHETIC", "AI_REVIEWED", "HUMAN_VERIFIED"))
         self.assertEqual(model.CRITERION_STATES, ("PASS", "FAIL", "NOT_RUN"))
         self.assertEqual(model.PHASE_STATUSES, ("PLANNED", "ACTIVE", "EXIT_PENDING", "COMPLETE"))

@@ -1,14 +1,14 @@
 cff-version: 1.2.0
-message: If you use Prokron in your work, please cite it.
-title: "Prokron: repository-native project memory and governance for human-AI software development"
+message: If you use Praukron in your work, please cite it.
+title: "Praukron: repository-native project memory and governance for human-AI software development"
 abstract: >-
-  Prokron is a repository-native project-state protocol and reference
+  Praukron is a repository-native project-state protocol and reference
   implementation for asynchronous human-AI software development. It keeps
   people and coding agents working from the same explicit project state by
   storing phases, tasks, dependencies, decisions, acceptance contracts and
   evidence as versioned Markdown inside the repository. A deterministic
   compiler derives project state from those records and projects it as an
-  interactive dashboard for humans and structured context for agents. Prokron
+  interactive dashboard for humans and structured context for agents. Praukron
   is designed to preserve project authority, causal history and definition of
   done across asynchronous human and AI work without relying on hidden agent
   memory.
@@ -16,11 +16,11 @@ type: software
 authors:
   - name: Qomero
 doi: 10.5281/zenodo.22897871
-repository-code: https://github.com/qomero/prokron
-url: https://github.com/qomero/prokron
+repository-code: https://github.com/qomero/praukron
+url: https://github.com/qomero/praukron
 license: Apache-2.0
-version: 1.0.0
-date-released: "2026-09-24"
+version: 1.1.0
+date-released: "2026-10-04"
 keywords:
   - project memory
   - project governance

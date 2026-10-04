@@ -1,4 +1,4 @@
-"""`prokron dashboard --serve`: local write-back through respond (T-SERVE-01, ADR-055)."""
+"""`praukron dashboard --serve`: local write-back through respond (T-SERVE-01, ADR-055)."""
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prokron import analytics, compile as compiler, dashboard, review, serve  # noqa: E402
+from praukron import analytics, compile as compiler, dashboard, review, serve  # noqa: E402
 from test_assumptions import AssumptionCase  # noqa: E402
 
 
@@ -44,7 +44,7 @@ class ServeCase(AssumptionCase):
             return error.code, error.read().decode()
 
     def post(self, body: object, token: str | None = None, **headers: str) -> tuple[int, dict]:
-        merged = {"Content-Type": "application/json", "X-Prokron-Token": token or self.token,
+        merged = {"Content-Type": "application/json", "X-Praukron-Token": token or self.token,
                   "Origin": f"http://127.0.0.1:{self.port}", **headers}
         status, text = self.request("/respond", body, {k: v for k, v in merged.items() if v})
         return status, json.loads(text)

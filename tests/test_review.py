@@ -10,7 +10,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from prokron import analytics, compile as compiler, dashboard  # noqa: E402
+from praukron import analytics, compile as compiler, dashboard  # noqa: E402
 from test_assumptions import ASSUMPTIONS, AssumptionCase  # noqa: E402
 
 SETTLED = """
@@ -99,7 +99,7 @@ class TestAssumptionsTab(ReviewCase):
 
     def test_the_static_page_is_read_only(self) -> None:
         """AC-T-REVIEW-TAB-01-03."""
-        self.assertIn("run <code>prokron dashboard --serve</code>", self.panel)
+        self.assertIn("run <code>praukron dashboard --serve</code>", self.panel)
         self.assertIn("This page is read-only.", self.panel)
         self.assertNotIn("<textarea", self.panel)
         self.assertNotIn("<form", self.html)
@@ -151,7 +151,7 @@ class TestBlockerGuidance(ReviewCase):
         group = self.execution.split("<summary>Waiting on the owner", 1)[1].split("</details>", 1)[0]
         self.assertIn('data-task="T-THREE"', group)
         self.assertIn("the owner finishes T-TWO", group)
-        self.assertIn("Guide: run <code>prokron dashboard --serve</code>", group)
+        self.assertIn("Guide: run <code>praukron dashboard --serve</code>", group)
         self.render(interactive=True)
         served = self.html.split("<summary>Waiting on the owner", 1)[1].split("</details>", 1)[0]
         self.assertIn('data-target="T-TWO" data-guide="1"', served)
